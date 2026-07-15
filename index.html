@@ -861,7 +861,7 @@
       </div>
       <div>
         <label class="field">Dia vencimento</label>
-        <input type="number" id="cDia" min="1" max="31" placeholder="Ex: 10">
+        <input type="text" id="cDia" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Ex: 10" oninput="onInputInteiro(this)">
       </div>
       <div>
         <label class="field">Valor mensal / parcela</label>
@@ -893,18 +893,11 @@
       </div>
       <div>
         <label class="field">Total de parcelas</label>
-        <input type="number" id="cTotalParcelas" min="1" step="1" value="1" oninput="atualizarPreviewDivida()">
+        <input type="text" id="cTotalParcelas" inputmode="numeric" pattern="[0-9]*" autocomplete="off" value="1" oninput="onInputInteiro(this); atualizarPreviewDivida()">
       </div>
       <div>
         <label class="field">Parcelas já pagas</label>
-        <input type="number" id="cParcelasPagas" min="0" step="1" value="0" oninput="atualizarPreviewDivida()">
-      </div>
-      <div>
-        <label class="field">Total da dívida</label>
-        <div class="input-prefix">
-          <span>R$</span>
-          <input type="text" id="cTotalDivida" inputmode="numeric" placeholder="Automático" autocomplete="off" oninput="onInputMoeda(this); atualizarPreviewDivida()">
-        </div>
+        <input type="text" id="cParcelasPagas" inputmode="numeric" pattern="[0-9]*" autocomplete="off" value="0" oninput="onInputInteiro(this); atualizarPreviewDivida()">
       </div>
       <div class="full" id="previewDivida" style="font-size:0.9rem;color:var(--muted)"></div>
     </div>
@@ -930,7 +923,7 @@
       </div>
       <div id="pagCampoParcelasExtra" class="full" style="display:none">
         <label class="field">Quantas parcelas antecipar (além da deste mês, se incluir)</label>
-        <input type="number" id="pagParcelasQtd" min="1" step="1" value="1" oninput="atualizarPreviewPagamento()">
+        <input type="text" id="pagParcelasQtd" inputmode="numeric" pattern="[0-9]*" autocomplete="off" value="1" oninput="onInputInteiro(this); atualizarPreviewPagamento()">
       </div>
       <div class="full" id="pagIncluiMesWrap">
         <label class="checkbox-row" style="display:flex;align-items:center;gap:8px;font-size:0.9rem">
@@ -1016,7 +1009,7 @@
 
 <script>
   // Escopo global (mesmo padrão da Lista de compras) para onclick="..." funcionar
-  const APP_VERSION = 'v9'; // manter igual ao CACHE_NAME em service-worker.js (minhas-contas-v9)
+  const APP_VERSION = 'v10'; // manter igual ao CACHE_NAME em service-worker.js (minhas-contas-v10)
   const STORAGE_KEY = 'minhas-contas-v1';
   const MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
   const MESES_CURTO = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
@@ -1145,6 +1138,26 @@
     el.value = formatarMoedaInput(n);
   }
 
+  /** Inteiro só com dígitos, sem inverter a ordem no celular. */
+  function onInputInteiro(el) {
+    if (!el) return;
+    const pos = el.selectionStart;
+    const antes = String(el.value);
+    const digits = antes.replace(/\D/g, '');
+    if (antes === digits) return;
+    el.value = digits;
+    const diff = antes.length - digits.length;
+    const novoPos = Math.max(0, (pos == null ? digits.length : pos) - diff);
+    try { el.setSelectionRange(novoPos, novoPos); } catch (e) {}
+  }
+
+  function getInteiroInput(id, padrao) {
+    const el = document.getElementById(id);
+    if (!el) return padrao || 0;
+    const n = parseInt(String(el.value).replace(/\D/g, ''), 10);
+    return isFinite(n) ? n : (padrao || 0);
+  }
+
   function setMoedaInput(id, valor) {
     const el = document.getElementById(id);
     if (!el) return;
@@ -1260,13 +1273,13 @@
       return;
     }
     const valor = getMoedaInput('cValor');
-    const totalP = Number(document.getElementById('cTotalParcelas').value) || 0;
-    const pagas = Number(document.getElementById('cParcelasPagas').value) || 0;
+    const totalP = getInteiroInput('cTotalParcelas', 0);
+    const pagas = getInteiroInput('cParcelasPagas', 0);
     const falta = Math.max(0, totalP - pagas);
-    const rawDivida = document.getElementById('cTotalDivida').value.trim();
-    const totalD = rawDivida === '' ? totalP * valor : parseMoeda(rawDivida);
+    const totalD = totalP * valor;
     const faltaQ = falta * valor;
-    box.innerHTML = 'Falta <strong>' + falta + '</strong> parcela(s) · Total dívida <strong>' + formatarMoeda(totalD) + '</strong> · Falta quitar ~ <strong>' + formatarMoeda(faltaQ) + '</strong>';
+    box.innerHTML = 'Total da dívida (automático): <strong>' + formatarMoeda(totalD) + '</strong><br>' +
+      'Falta <strong>' + falta + '</strong> parcela(s) · Falta quitar ~ <strong>' + formatarMoeda(faltaQ) + '</strong>';
   }
 
   function abrirModalPagamento(contaId, tipoPadrao) {
@@ -1299,7 +1312,7 @@
       qtd = isPago(c.id) ? 0 : 1;
       if (qtd > falta) qtd = falta;
     } else {
-      const extras = Math.max(0, Number(document.getElementById('pagParcelasQtd').value) || 0);
+      const extras = Math.max(0, getInteiroInput('pagParcelasQtd', 0));
       const incluiMes = document.getElementById('pagIncluiMes').checked && !isPago(c.id);
       qtd = extras + (incluiMes ? 1 : 0);
       if (qtd > falta) qtd = falta;
@@ -1653,10 +1666,8 @@
       document.getElementById('cCategoria').value = c.categoria || state.categorias[0];
       setMoedaInput('cValor', c.valor != null ? c.valor : 0);
       document.getElementById('cDataInicio').value = c.dataInicio || '';
-      document.getElementById('cParcelasPagas').value = c.parcelasPagas || 0;
-      document.getElementById('cTotalParcelas').value = c.totalParcelas || 1;
-      if (c.totalDivida != null && c.totalDivida !== '') setMoedaInput('cTotalDivida', c.totalDivida);
-      else document.getElementById('cTotalDivida').value = '';
+      document.getElementById('cParcelasPagas').value = String(c.parcelasPagas || 0);
+      document.getElementById('cTotalParcelas').value = String(c.totalParcelas || 1);
     } else {
       document.getElementById('cTipo').value = 'recorrente';
       document.getElementById('cDia').value = '';
@@ -1665,9 +1676,8 @@
       document.getElementById('cCategoria').value = state.categorias[0] || '';
       setMoedaInput('cValor', 0);
       document.getElementById('cDataInicio').value = '';
-      document.getElementById('cParcelasPagas').value = 0;
-      document.getElementById('cTotalParcelas').value = 1;
-      document.getElementById('cTotalDivida').value = '';
+      document.getElementById('cParcelasPagas').value = '0';
+      document.getElementById('cTotalParcelas').value = '1';
     }
     alternarCamposTipoConta();
     document.getElementById('modalConta').classList.add('open');
@@ -1688,17 +1698,16 @@
     const valor = getMoedaInput('cValor');
     const dados = {
       tipo: tipo,
-      diaVencimento: Number(document.getElementById('cDia').value) || null,
+      diaVencimento: getInteiroInput('cDia', 0) || null,
       descricao: descricao,
       obs: document.getElementById('cObs').value.trim(),
       categoria: document.getElementById('cCategoria').value,
       valor: valor
     };
     if (tipo === 'parcelada') {
-      const totalParcelas = Math.max(1, Number(document.getElementById('cTotalParcelas').value) || 1);
-      const parcelasPagas = Math.max(0, Number(document.getElementById('cParcelasPagas').value) || 0);
-      const totalDividaRaw = document.getElementById('cTotalDivida').value.trim();
-      const totalDivida = totalDividaRaw === '' ? totalParcelas * valor : parseMoeda(totalDividaRaw);
+      const totalParcelas = Math.max(1, getInteiroInput('cTotalParcelas', 1));
+      const parcelasPagas = Math.max(0, getInteiroInput('cParcelasPagas', 0));
+      const totalDivida = totalParcelas * valor;
       const falta = Math.max(0, totalParcelas - parcelasPagas);
       dados.dataInicio = document.getElementById('cDataInicio').value || '';
       dados.totalParcelas = totalParcelas;
