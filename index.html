@@ -643,7 +643,6 @@
           <th class="num">Total dívida</th>
           <th class="num">% contas</th>
           <th class="num">% entrada</th>
-          <th>Prioridade</th>
           <th></th>
         </tr>
       </thead>
@@ -814,17 +813,20 @@
     <h3 id="modalContaTitulo">Nova conta</h3>
     <input type="hidden" id="contaId">
     <div class="form-grid">
+      <div class="full">
+        <label class="field">Tipo de conta</label>
+        <select id="cTipo" onchange="alternarCamposTipoConta()">
+          <option value="recorrente">Recorrente (água, luz, aluguel…)</option>
+          <option value="parcelada">Parcelada / dívida</option>
+        </select>
+      </div>
       <div>
         <label class="field">Dia vencimento</label>
         <input type="number" id="cDia" min="1" max="31" placeholder="Ex: 10">
       </div>
       <div>
-        <label class="field">Prioridade</label>
-        <select id="cPrioridade">
-          <option value="alta">Alta</option>
-          <option value="media" selected>Média</option>
-          <option value="baixa">Baixa</option>
-        </select>
+        <label class="field">Valor mensal / parcela (R$)</label>
+        <input type="number" id="cValor" min="0" step="0.01" placeholder="0,00" oninput="atualizarPreviewDivida()">
       </div>
       <div class="full">
         <label class="field">Descrição</label>
@@ -845,34 +847,72 @@
           <option value="Variável">Variável</option>
         </select>
       </div>
+    </div>
+    <div class="form-grid" id="camposParcelada" style="display:none;margin-top:12px">
+      <div class="full">
+        <p style="margin:0;font-size:0.85rem;color:var(--muted)">Preencha só para dívidas parceladas. O total e o “falta quitar” são calculados automaticamente.</p>
+      </div>
       <div>
         <label class="field">Data de início</label>
         <input type="date" id="cDataInicio">
       </div>
       <div>
-        <label class="field">Valor (R$)</label>
-        <input type="number" id="cValor" min="0" step="0.01" placeholder="0,00">
-      </div>
-      <div>
-        <label class="field">Parcelas pagas</label>
-        <input type="number" id="cParcelasPagas" min="0" step="1" value="0">
-      </div>
-      <div>
         <label class="field">Total de parcelas</label>
-        <input type="number" id="cTotalParcelas" min="0" step="1" value="0" placeholder="0 = sem parcelas">
+        <input type="number" id="cTotalParcelas" min="1" step="1" value="1" oninput="atualizarPreviewDivida()">
+      </div>
+      <div>
+        <label class="field">Parcelas já pagas</label>
+        <input type="number" id="cParcelasPagas" min="0" step="1" value="0" oninput="atualizarPreviewDivida()">
       </div>
       <div>
         <label class="field">Total da dívida (R$)</label>
-        <input type="number" id="cTotalDivida" min="0" step="0.01" placeholder="Auto se vazio">
+        <input type="number" id="cTotalDivida" min="0" step="0.01" placeholder="Auto: parcelas × valor" oninput="atualizarPreviewDivida()">
       </div>
-      <div>
-        <label class="field">Falta para quitar (R$)</label>
-        <input type="number" id="cFaltaQuitar" min="0" step="0.01" placeholder="Auto se vazio">
-      </div>
+      <div class="full" id="previewDivida" style="font-size:0.9rem;color:var(--muted)"></div>
     </div>
     <div class="modal-actions">
       <button class="btn btn-secondary" type="button" onclick="fecharModalConta()">Cancelar</button>
       <button class="btn btn-primary" type="button" onclick="salvarConta()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalPagamento" onclick="if(event.target===this) fecharModalPagamento()">
+  <div class="modal-box">
+    <h3>Registrar pagamento</h3>
+    <input type="hidden" id="pagContaId">
+    <p id="pagContaNome" style="margin:0 0 12px;color:var(--muted);font-size:0.9rem"></p>
+    <div class="form-grid">
+      <div class="full">
+        <label class="field">Tipo</label>
+        <select id="pagTipo" onchange="atualizarPreviewPagamento()">
+          <option value="parcela">Parcela deste mês</option>
+          <option value="amortizacao">Amortizar / antecipar parcelas</option>
+        </select>
+      </div>
+      <div id="pagCampoParcelasExtra" class="full" style="display:none">
+        <label class="field">Quantas parcelas antecipar (além da deste mês, se incluir)</label>
+        <input type="number" id="pagParcelasQtd" min="1" step="1" value="1" oninput="atualizarPreviewPagamento()">
+      </div>
+      <div class="full" id="pagIncluiMesWrap">
+        <label class="checkbox-row" style="display:flex;align-items:center;gap:8px;font-size:0.9rem">
+          <input type="checkbox" id="pagIncluiMes" checked onchange="atualizarPreviewPagamento()">
+          Incluir também a parcela deste mês
+        </label>
+      </div>
+      <div>
+        <label class="field">Valor esperado (tabela)</label>
+        <input type="text" id="pagValorEsperado" readonly>
+      </div>
+      <div>
+        <label class="field">Valor que você pagou (R$)</label>
+        <input type="number" id="pagValorPago" min="0" step="0.01" oninput="atualizarPreviewPagamento()">
+      </div>
+      <div class="full" id="pagEconomiaBox" style="padding:10px 12px;border-radius:10px;background:var(--chip-bg);border:1px solid var(--border);font-size:0.9rem"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" type="button" onclick="fecharModalPagamento()">Cancelar</button>
+      <button class="btn btn-primary" type="button" onclick="confirmarPagamento()">Confirmar</button>
     </div>
   </div>
 </div>
@@ -932,7 +972,7 @@
 
 <script>
   // Escopo global (mesmo padrão da Lista de compras) para onclick="..." funcionar
-  const APP_VERSION = 'v5'; // manter igual ao CACHE_NAME em service-worker.js (minhas-contas-v5)
+  const APP_VERSION = 'v6'; // manter igual ao CACHE_NAME em service-worker.js (minhas-contas-v6)
   const STORAGE_KEY = 'minhas-contas-v1';
   const MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
   const MESES_CURTO = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
@@ -996,6 +1036,16 @@
       if (!raw) return dadosIniciais();
       const data = JSON.parse(raw);
       if (!Array.isArray(data.contas)) data.contas = [];
+      else {
+        data.contas = data.contas.map(function(c) {
+          if (!c.tipo) {
+            c.tipo = (Number(c.totalParcelas) || 0) > 0 ? 'parcelada' : 'recorrente';
+          }
+          if (c.tipo === 'parcelada' && !Array.isArray(c.pagamentos)) c.pagamentos = [];
+          delete c.prioridade;
+          return c;
+        });
+      }
       if (!Array.isArray(data.entradas)) {
         data.entradas = ENTRADAS_PADRAO.map(function(e) { return { id: uid(), classe: e.classe, valor: e.valor, valoresMes: {} }; });
       } else {
@@ -1046,20 +1096,22 @@
     return map[cat] || '';
   }
 
-  function labelPrioridade(p) {
-    if (p === 'alta') return { txt: 'Alta', cls: 'prio-alta' };
-    if (p === 'baixa') return { txt: 'Baixa', cls: 'prio-baixa' };
-    return { txt: 'Média', cls: 'prio-media' };
+  function ehParcelada(c) {
+    if (!c) return false;
+    if (c.tipo === 'parcelada') return true;
+    if (c.tipo === 'recorrente') return false;
+    return (Number(c.totalParcelas) || 0) > 0;
   }
 
   function faltaParcelas(c) {
+    if (!ehParcelada(c)) return 0;
     const total = Number(c.totalParcelas) || 0;
     const pagas = Number(c.parcelasPagas) || 0;
-    if (!total) return 0;
     return Math.max(0, total - pagas);
   }
 
   function totalDividaCalc(c) {
+    if (!ehParcelada(c)) return 0;
     if (c.totalDivida != null && c.totalDivida !== '' && !isNaN(Number(c.totalDivida))) return Number(c.totalDivida);
     const total = Number(c.totalParcelas) || 0;
     const valor = Number(c.valor) || 0;
@@ -1067,8 +1119,16 @@
   }
 
   function faltaQuitarCalc(c) {
-    if (c.faltaQuitar != null && c.faltaQuitar !== '' && !isNaN(Number(c.faltaQuitar))) return Number(c.faltaQuitar);
+    if (!ehParcelada(c)) return 0;
+    if (c.faltaQuitar != null && c.faltaQuitar !== '' && !isNaN(Number(c.faltaQuitar))) {
+      return Math.max(0, Number(c.faltaQuitar));
+    }
     return faltaParcelas(c) * (Number(c.valor) || 0);
+  }
+
+  function economiaTotal(c) {
+    if (!c || !Array.isArray(c.pagamentos)) return 0;
+    return c.pagamentos.reduce(function(s, p) { return s + (Number(p.economia) || 0); }, 0);
   }
 
   function isPago(contaId) {
@@ -1076,15 +1136,148 @@
     return !!mapa[contaId];
   }
 
-  function setPago(contaId, pago) {
+  function marcarPagoMes(contaId, pago) {
     const key = mesKeyAtual();
     if (!state.pagosPorMes[key]) state.pagosPorMes[key] = {};
     if (pago) state.pagosPorMes[key][contaId] = true;
     else delete state.pagosPorMes[key][contaId];
+  }
+
+  function setPago(contaId, pago) {
+    const c = state.contas.find(function(x) { return x.id === contaId; });
+    if (!c) return;
+    if (pago) {
+      if (ehParcelada(c)) {
+        // reverte o check visual até confirmar no modal
+        renderContas();
+        abrirModalPagamento(contaId, 'parcela');
+        return;
+      }
+      marcarPagoMes(contaId, true);
+      salvar();
+      renderTudo();
+      return;
+    }
+    marcarPagoMes(contaId, false);
     salvar();
     renderTudo();
   }
 
+  function alternarCamposTipoConta() {
+    const tipo = document.getElementById('cTipo').value;
+    document.getElementById('camposParcelada').style.display = tipo === 'parcelada' ? 'grid' : 'none';
+    atualizarPreviewDivida();
+  }
+
+  function atualizarPreviewDivida() {
+    const box = document.getElementById('previewDivida');
+    if (!box) return;
+    if (document.getElementById('cTipo').value !== 'parcelada') {
+      box.textContent = '';
+      return;
+    }
+    const valor = Number(document.getElementById('cValor').value) || 0;
+    const totalP = Number(document.getElementById('cTotalParcelas').value) || 0;
+    const pagas = Number(document.getElementById('cParcelasPagas').value) || 0;
+    const falta = Math.max(0, totalP - pagas);
+    let totalD = document.getElementById('cTotalDivida').value;
+    totalD = totalD === '' ? totalP * valor : Number(totalD) || 0;
+    const faltaQ = falta * valor;
+    box.innerHTML = 'Falta <strong>' + falta + '</strong> parcela(s) · Total dívida <strong>' + formatarMoeda(totalD) + '</strong> · Falta quitar ~ <strong>' + formatarMoeda(faltaQ) + '</strong>';
+  }
+
+  function abrirModalPagamento(contaId, tipoPadrao) {
+    const c = state.contas.find(function(x) { return x.id === contaId; });
+    if (!c || !ehParcelada(c)) return;
+    document.getElementById('pagContaId').value = contaId;
+    document.getElementById('pagContaNome').textContent =
+      (c.descricao || 'Conta') + ' · ' + faltaParcelas(c) + ' parcela(s) em aberto · falta ' + formatarMoeda(faltaQuitarCalc(c));
+    document.getElementById('pagTipo').value = tipoPadrao || 'parcela';
+    document.getElementById('pagParcelasQtd').value = 1;
+    document.getElementById('pagIncluiMes').checked = true;
+    document.getElementById('pagValorPago').value = Number(c.valor) || 0;
+    atualizarPreviewPagamento();
+    document.getElementById('modalPagamento').classList.add('open');
+  }
+
+  function fecharModalPagamento() {
+    document.getElementById('modalPagamento').classList.remove('open');
+  }
+
+  function calcPreviewPagamento() {
+    const id = document.getElementById('pagContaId').value;
+    const c = state.contas.find(function(x) { return x.id === id; });
+    if (!c) return null;
+    const tipo = document.getElementById('pagTipo').value;
+    const valorParcela = Number(c.valor) || 0;
+    const falta = faltaParcelas(c);
+    let qtd = 0;
+    if (tipo === 'parcela') {
+      qtd = isPago(c.id) ? 0 : 1;
+      if (qtd > falta) qtd = falta;
+    } else {
+      const extras = Math.max(0, Number(document.getElementById('pagParcelasQtd').value) || 0);
+      const incluiMes = document.getElementById('pagIncluiMes').checked && !isPago(c.id);
+      qtd = extras + (incluiMes ? 1 : 0);
+      if (qtd > falta) qtd = falta;
+    }
+    const esperado = qtd * valorParcela;
+    let pago = Number(document.getElementById('pagValorPago').value);
+    if (!isFinite(pago)) pago = esperado;
+    const economia = Math.max(0, esperado - pago);
+    return { c: c, tipo: tipo, qtd: qtd, esperado: esperado, pago: pago, economia: economia, valorParcela: valorParcela };
+  }
+
+  function atualizarPreviewPagamento() {
+    const tipo = document.getElementById('pagTipo').value;
+    document.getElementById('pagCampoParcelasExtra').style.display = tipo === 'amortizacao' ? 'block' : 'none';
+    document.getElementById('pagIncluiMesWrap').style.display = tipo === 'amortizacao' ? 'block' : 'none';
+    const p = calcPreviewPagamento();
+    if (!p) return;
+    document.getElementById('pagValorEsperado').value = formatarMoeda(p.esperado);
+    const box = document.getElementById('pagEconomiaBox');
+    if (p.qtd <= 0) {
+      box.innerHTML = 'Nenhuma parcela pendente para registrar neste mês.';
+      return;
+    }
+    box.innerHTML = 'Vai quitar <strong>' + p.qtd + '</strong> parcela(s). ' +
+      (p.economia > 0
+        ? 'Economia / desconto: <strong class="diff-pos">' + formatarMoeda(p.economia) + '</strong>'
+        : (p.pago > p.esperado
+          ? 'Pago acima da tabela em <strong class="diff-neg">' + formatarMoeda(p.pago - p.esperado) + '</strong>'
+          : 'Sem economia (valor igual ao da tabela).'));
+  }
+
+  function confirmarPagamento() {
+    const p = calcPreviewPagamento();
+    if (!p || p.qtd <= 0) {
+      mostrarAlerta('Não há parcelas para quitar com essa configuração.');
+      return;
+    }
+    const c = p.c;
+    if (!Array.isArray(c.pagamentos)) c.pagamentos = [];
+    c.pagamentos.push({
+      id: uid(),
+      mes: mesKeyAtual(),
+      tipo: p.tipo,
+      parcelas: p.qtd,
+      valorEsperado: p.esperado,
+      valorPago: p.pago,
+      economia: p.economia,
+      data: new Date().toISOString()
+    });
+    const saldoAntes = faltaQuitarCalc(c);
+    c.parcelasPagas = (Number(c.parcelasPagas) || 0) + p.qtd;
+    if (c.totalDivida == null || c.totalDivida === '') c.totalDivida = totalDividaCalc(c);
+    c.faltaQuitar = Math.max(0, saldoAntes - p.pago);
+    marcarPagoMes(c.id, true);
+    salvar();
+    fecharModalPagamento();
+    renderTudo();
+    if (p.economia > 0) {
+      mostrarAlerta('Pagamento registrado. Você economizou ' + formatarMoeda(p.economia) + ' nesta amortização.');
+    }
+  }
   function diasNoMes(ano, mes) {
     return new Date(ano, mes + 1, 0).getDate();
   }
@@ -1157,7 +1350,17 @@
   }
 
   function totalPagoMes() {
-    return state.contas.reduce((s, c) => s + (isPago(c.id) ? (Number(c.valor) || 0) : 0), 0);
+    return state.contas.reduce(function(s, c) {
+      if (!isPago(c.id)) return s;
+      const key = mesKeyAtual();
+      if (ehParcelada(c) && Array.isArray(c.pagamentos)) {
+        const doMes = c.pagamentos.filter(function(p) { return p.mes === key; });
+        if (doMes.length) {
+          return s + doMes.reduce(function(a, p) { return a + (Number(p.valorPago) || 0); }, 0);
+        }
+      }
+      return s + (Number(c.valor) || 0);
+    }, 0);
   }
 
   function entradaValorMes(e, ano, mes) {
@@ -1257,81 +1460,92 @@
     }
     empty.style.display = 'none';
 
-    cards.innerHTML = lista.map(c => {
+    cards.innerHTML = lista.map(function(c) {
       const pago = isPago(c.id);
       const alerta = estaPertoVencimento(c);
-      const prio = labelPrioridade(c.prioridade);
+      const parcelada = ehParcelada(c);
       const pctContas = totalDesp ? (Number(c.valor) || 0) / totalDesp : 0;
       const pctEnt = totalEnt ? (Number(c.valor) || 0) / totalEnt : 0;
       const d = diasAteVencimento(c);
       const chipAlerta = alerta
         ? '<span class="chip chip-alerta">' + (d < 0 ? 'Atrasada' : (d === 0 ? 'Vence hoje' : d + ' dia(s)')) + '</span>'
         : '';
-      return `
-        <article class="conta-card ${pago ? 'pago' : ''} ${alerta ? 'alerta-vencimento' : ''}" id="card-${c.id}">
-          <div class="conta-card-top">
-            <input class="check-pago" type="checkbox" ${pago ? 'checked' : ''} onchange="setPago('${c.id}', this.checked)" aria-label="Pago">
-            <div class="conta-main" onclick="toggleExpand('${c.id}')">
-              <div class="conta-titulo">${esc(c.descricao || 'Sem descrição')}</div>
-              <div class="conta-meta">
-                <span class="chip">Dia ${c.diaVencimento || '—'}</span>
-                <span class="chip ${chipCategoriaClass(c.categoria)}">${esc(c.categoria || '—')}</span>
-                <span class="chip ${c.natureza === 'Fixo' ? 'chip-fixo' : 'chip-variavel'}">${esc(c.natureza || '—')}</span>
-                ${chipAlerta}
-                <span class="${prio.cls}">${prio.txt}</span>
-              </div>
-            </div>
-            <div class="conta-valor">${formatarMoeda(c.valor)}</div>
-            <div class="conta-actions">
-              <button class="btn btn-secondary btn-icon" type="button" onclick="abrirModalConta('${c.id}')" aria-label="Editar">✎</button>
-              <button class="btn btn-danger btn-icon" type="button" onclick="excluirConta('${c.id}')" aria-label="Excluir">✕</button>
-            </div>
-          </div>
-          <div class="conta-details">
-            <div class="detail-item"><span>Obs</span><strong>${esc(c.obs || '—')}</strong></div>
-            <div class="detail-item"><span>Início</span><strong>${formatarDataBR(c.dataInicio)}</strong></div>
-            <div class="detail-item"><span>Parcelas</span><strong>${c.parcelasPagas || 0} / ${c.totalParcelas || 0} (falta ${faltaParcelas(c)})</strong></div>
-            <div class="detail-item"><span>Falta quitar</span><strong>${formatarMoeda(faltaQuitarCalc(c))}</strong></div>
-            <div class="detail-item"><span>Total dívida</span><strong>${formatarMoeda(totalDividaCalc(c))}</strong></div>
-            <div class="detail-item"><span>% contas / % entrada</span><strong>${formatarPct(pctContas)} / ${formatarPct(pctEnt)}</strong></div>
-          </div>
-        </article>`;
+      const chipTipo = parcelada
+        ? '<span class="chip chip-dividas">Parcelada</span>'
+        : '<span class="chip">Recorrente</span>';
+      const econ = economiaTotal(c);
+      const detalhes = parcelada
+        ? ('<div class="detail-item"><span>Início</span><strong>' + formatarDataBR(c.dataInicio) + '</strong></div>' +
+           '<div class="detail-item"><span>Parcelas</span><strong>' + (c.parcelasPagas || 0) + ' / ' + (c.totalParcelas || 0) + ' (falta ' + faltaParcelas(c) + ')</strong></div>' +
+           '<div class="detail-item"><span>Falta quitar</span><strong>' + formatarMoeda(faltaQuitarCalc(c)) + '</strong></div>' +
+           '<div class="detail-item"><span>Total dívida</span><strong>' + formatarMoeda(totalDividaCalc(c)) + '</strong></div>' +
+           '<div class="detail-item"><span>Economia acumulada</span><strong class="diff-pos">' + formatarMoeda(econ) + '</strong></div>')
+        : '<div class="detail-item"><span>Tipo</span><strong>Conta recorrente (sem parcelas)</strong></div>';
+      const btnAmort = parcelada
+        ? '<button class="btn btn-secondary btn-icon" type="button" onclick="abrirModalPagamento(\'' + c.id + '\',\'amortizacao\')" aria-label="Amortizar" title="Amortizar">$</button>'
+        : '';
+      return '<article class="conta-card ' + (pago ? 'pago' : '') + ' ' + (alerta ? 'alerta-vencimento' : '') + '" id="card-' + c.id + '">' +
+        '<div class="conta-card-top">' +
+          '<input class="check-pago" type="checkbox" ' + (pago ? 'checked' : '') + ' onchange="setPago(\'' + c.id + '\', this.checked)" aria-label="Pago">' +
+          '<div class="conta-main" onclick="toggleExpand(\'' + c.id + '\')">' +
+            '<div class="conta-titulo">' + esc(c.descricao || 'Sem descrição') + '</div>' +
+            '<div class="conta-meta">' +
+              '<span class="chip">Dia ' + (c.diaVencimento || '—') + '</span>' +
+              '<span class="chip ' + chipCategoriaClass(c.categoria) + '">' + esc(c.categoria || '—') + '</span>' +
+              '<span class="chip ' + (c.natureza === 'Fixo' ? 'chip-fixo' : 'chip-variavel') + '">' + esc(c.natureza || '—') + '</span>' +
+              chipTipo + chipAlerta +
+            '</div>' +
+          '</div>' +
+          '<div class="conta-valor">' + formatarMoeda(c.valor) + '</div>' +
+          '<div class="conta-actions">' +
+            btnAmort +
+            '<button class="btn btn-secondary btn-icon" type="button" onclick="abrirModalConta(\'' + c.id + '\')" aria-label="Editar">✎</button>' +
+            '<button class="btn btn-danger btn-icon" type="button" onclick="excluirConta(\'' + c.id + '\')" aria-label="Excluir">✕</button>' +
+          '</div>' +
+        '</div>' +
+        '<div class="conta-details">' +
+          '<div class="detail-item"><span>Obs</span><strong>' + esc(c.obs || '—') + '</strong></div>' +
+          detalhes +
+          '<div class="detail-item"><span>% contas / % entrada</span><strong>' + formatarPct(pctContas) + ' / ' + formatarPct(pctEnt) + '</strong></div>' +
+        '</div>' +
+      '</article>';
     }).join('');
 
-    tbody.innerHTML = lista.map(c => {
+    tbody.innerHTML = lista.map(function(c) {
       const pago = isPago(c.id);
       const alerta = estaPertoVencimento(c);
-      const prio = labelPrioridade(c.prioridade);
+      const parcelada = ehParcelada(c);
       const pctContas = totalDesp ? (Number(c.valor) || 0) / totalDesp : 0;
       const pctEnt = totalEnt ? (Number(c.valor) || 0) / totalEnt : 0;
-      return `<tr class="${pago ? 'pago' : ''} ${alerta ? 'alerta-vencimento' : ''}">
-        <td class="center"><input type="checkbox" class="check-pago" ${pago ? 'checked' : ''} onchange="setPago('${c.id}', this.checked)"></td>
-        <td class="center">${c.diaVencimento || '—'}</td>
-        <td>${esc(c.descricao || '')}</td>
-        <td>${esc(c.obs || '')}</td>
-        <td><span class="chip ${chipCategoriaClass(c.categoria)}">${esc(c.categoria || '—')}</span></td>
-        <td><span class="chip ${c.natureza === 'Fixo' ? 'chip-fixo' : 'chip-variavel'}">${esc(c.natureza || '—')}</span></td>
-        <td>${formatarDataBR(c.dataInicio)}</td>
-        <td class="center">${c.parcelasPagas || 0}</td>
-        <td class="center">${faltaParcelas(c)}</td>
-        <td class="center">${c.totalParcelas || 0}</td>
-        <td class="num">${formatarMoeda(c.valor)}</td>
-        <td class="num">${formatarMoeda(faltaQuitarCalc(c))}</td>
-        <td class="num">${formatarMoeda(totalDividaCalc(c))}</td>
-        <td class="num">${formatarPct(pctContas)}</td>
-        <td class="num">${formatarPct(pctEnt)}</td>
-        <td class="${prio.cls}">${prio.txt}</td>
-        <td>
-          <button class="btn btn-secondary btn-icon" type="button" onclick="abrirModalConta('${c.id}')">✎</button>
-          <button class="btn btn-danger btn-icon" type="button" onclick="excluirConta('${c.id}')">✕</button>
-        </td>
-      </tr>`;
+      const btnAmort = parcelada
+        ? '<button class="btn btn-secondary btn-icon" type="button" onclick="abrirModalPagamento(\'' + c.id + '\',\'amortizacao\')" title="Amortizar">$</button>'
+        : '';
+      return '<tr class="' + (pago ? 'pago' : '') + ' ' + (alerta ? 'alerta-vencimento' : '') + '">' +
+        '<td class="center"><input type="checkbox" class="check-pago" ' + (pago ? 'checked' : '') + ' onchange="setPago(\'' + c.id + '\', this.checked)"></td>' +
+        '<td class="center">' + (c.diaVencimento || '—') + '</td>' +
+        '<td>' + esc(c.descricao || '') + '</td>' +
+        '<td>' + esc(c.obs || '') + '</td>' +
+        '<td><span class="chip ' + chipCategoriaClass(c.categoria) + '">' + esc(c.categoria || '—') + '</span></td>' +
+        '<td><span class="chip ' + (c.natureza === 'Fixo' ? 'chip-fixo' : 'chip-variavel') + '">' + esc(c.natureza || '—') + '</span></td>' +
+        '<td>' + (parcelada ? formatarDataBR(c.dataInicio) : '—') + '</td>' +
+        '<td class="center">' + (parcelada ? (c.parcelasPagas || 0) : '—') + '</td>' +
+        '<td class="center">' + (parcelada ? faltaParcelas(c) : '—') + '</td>' +
+        '<td class="center">' + (parcelada ? (c.totalParcelas || 0) : '—') + '</td>' +
+        '<td class="num">' + formatarMoeda(c.valor) + '</td>' +
+        '<td class="num">' + (parcelada ? formatarMoeda(faltaQuitarCalc(c)) : '—') + '</td>' +
+        '<td class="num">' + (parcelada ? formatarMoeda(totalDividaCalc(c)) : '—') + '</td>' +
+        '<td class="num">' + formatarPct(pctContas) + '</td>' +
+        '<td class="num">' + formatarPct(pctEnt) + '</td>' +
+        '<td>' + btnAmort +
+          '<button class="btn btn-secondary btn-icon" type="button" onclick="abrirModalConta(\'' + c.id + '\')">✎</button>' +
+          '<button class="btn btn-danger btn-icon" type="button" onclick="excluirConta(\'' + c.id + '\')">✕</button>' +
+        '</td>' +
+      '</tr>';
     }).join('');
 
     atualizarTotais();
     atualizarSinoVencimento();
   }
-
   function toggleExpand(id) {
     const el = document.getElementById('card-' + id);
     if (el) el.classList.toggle('expanded');
@@ -1349,30 +1563,33 @@
     document.getElementById('modalContaTitulo').textContent = id ? 'Editar conta' : 'Nova conta';
     document.getElementById('contaId').value = id || '';
     if (id) {
-      const c = state.contas.find(x => x.id === id);
+      const c = state.contas.find(function(x) { return x.id === id; });
       if (!c) return;
+      document.getElementById('cTipo').value = ehParcelada(c) ? 'parcelada' : 'recorrente';
       document.getElementById('cDia').value = c.diaVencimento || '';
-      document.getElementById('cPrioridade').value = c.prioridade || 'media';
       document.getElementById('cDescricao').value = c.descricao || '';
       document.getElementById('cObs').value = c.obs || '';
       document.getElementById('cCategoria').value = c.categoria || state.categorias[0];
       document.getElementById('cNatureza').value = c.natureza || 'Fixo';
-      document.getElementById('cDataInicio').value = c.dataInicio || '';
       document.getElementById('cValor').value = c.valor != null ? c.valor : '';
+      document.getElementById('cDataInicio').value = c.dataInicio || '';
       document.getElementById('cParcelasPagas').value = c.parcelasPagas || 0;
-      document.getElementById('cTotalParcelas').value = c.totalParcelas || 0;
+      document.getElementById('cTotalParcelas').value = c.totalParcelas || 1;
       document.getElementById('cTotalDivida').value = c.totalDivida != null ? c.totalDivida : '';
-      document.getElementById('cFaltaQuitar').value = c.faltaQuitar != null ? c.faltaQuitar : '';
     } else {
-      ['cDia','cDescricao','cObs','cDataInicio','cValor','cTotalDivida','cFaltaQuitar'].forEach(idEl => {
-        document.getElementById(idEl).value = '';
-      });
-      document.getElementById('cPrioridade').value = 'media';
+      document.getElementById('cTipo').value = 'recorrente';
+      document.getElementById('cDia').value = '';
+      document.getElementById('cDescricao').value = '';
+      document.getElementById('cObs').value = '';
       document.getElementById('cCategoria').value = state.categorias[0] || '';
       document.getElementById('cNatureza').value = 'Fixo';
+      document.getElementById('cValor').value = '';
+      document.getElementById('cDataInicio').value = '';
       document.getElementById('cParcelasPagas').value = 0;
-      document.getElementById('cTotalParcelas').value = 0;
+      document.getElementById('cTotalParcelas').value = 1;
+      document.getElementById('cTotalDivida').value = '';
     }
+    alternarCamposTipoConta();
     document.getElementById('modalConta').classList.add('open');
   }
 
@@ -1387,31 +1604,55 @@
       return;
     }
     const id = document.getElementById('contaId').value;
+    const tipo = document.getElementById('cTipo').value;
+    const valor = Number(document.getElementById('cValor').value) || 0;
     const dados = {
+      tipo: tipo,
       diaVencimento: Number(document.getElementById('cDia').value) || null,
-      descricao,
+      descricao: descricao,
       obs: document.getElementById('cObs').value.trim(),
       categoria: document.getElementById('cCategoria').value,
       natureza: document.getElementById('cNatureza').value,
-      dataInicio: document.getElementById('cDataInicio').value || '',
-      valor: Number(document.getElementById('cValor').value) || 0,
-      parcelasPagas: Number(document.getElementById('cParcelasPagas').value) || 0,
-      totalParcelas: Number(document.getElementById('cTotalParcelas').value) || 0,
-      totalDivida: document.getElementById('cTotalDivida').value === '' ? null : Number(document.getElementById('cTotalDivida').value),
-      faltaQuitar: document.getElementById('cFaltaQuitar').value === '' ? null : Number(document.getElementById('cFaltaQuitar').value),
-      prioridade: document.getElementById('cPrioridade').value
+      valor: valor
     };
-    if (id) {
-      const i = state.contas.findIndex(c => c.id === id);
-      if (i >= 0) state.contas[i] = { ...state.contas[i], ...dados };
+    if (tipo === 'parcelada') {
+      const totalParcelas = Math.max(1, Number(document.getElementById('cTotalParcelas').value) || 1);
+      const parcelasPagas = Math.max(0, Number(document.getElementById('cParcelasPagas').value) || 0);
+      const totalDividaRaw = document.getElementById('cTotalDivida').value;
+      const totalDivida = totalDividaRaw === '' ? totalParcelas * valor : Number(totalDividaRaw) || 0;
+      const falta = Math.max(0, totalParcelas - parcelasPagas);
+      dados.dataInicio = document.getElementById('cDataInicio').value || '';
+      dados.totalParcelas = totalParcelas;
+      dados.parcelasPagas = Math.min(parcelasPagas, totalParcelas);
+      dados.totalDivida = totalDivida;
+      dados.faltaQuitar = falta * valor;
+      if (!id) dados.pagamentos = [];
     } else {
-      state.contas.push({ id: uid(), ...dados });
+      dados.dataInicio = '';
+      dados.totalParcelas = 0;
+      dados.parcelasPagas = 0;
+      dados.totalDivida = null;
+      dados.faltaQuitar = null;
+    }
+    if (id) {
+      const i = state.contas.findIndex(function(c) { return c.id === id; });
+      if (i >= 0) {
+        const prev = state.contas[i];
+        state.contas[i] = Object.assign({}, prev, dados);
+        if (tipo === 'parcelada' && !Array.isArray(state.contas[i].pagamentos)) {
+          state.contas[i].pagamentos = prev.pagamentos || [];
+        }
+        if (tipo === 'recorrente') {
+          delete state.contas[i].pagamentos;
+        }
+      }
+    } else {
+      state.contas.push(Object.assign({ id: uid() }, dados));
     }
     salvar();
     fecharModalConta();
     renderContas();
   }
-
   function excluirConta(id) {
     mostrarConfirmacao('Excluir esta conta?', () => {
       state.contas = state.contas.filter(c => c.id !== id);
