@@ -1,4 +1,4 @@
-const CACHE_NAME = 'minhas-contas-v13';
+const CACHE_NAME = 'minhas-contas-v14';
 const ASSETS = [
   './index.html',
   './manifest.json',

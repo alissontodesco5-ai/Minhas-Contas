@@ -1034,7 +1034,7 @@
 
 <script>
   // Escopo global (mesmo padrão da Lista de compras) para onclick="..." funcionar
-  const APP_VERSION = 'v13'; // manter igual ao CACHE_NAME em service-worker.js (minhas-contas-v13)
+  const APP_VERSION = 'v14'; // manter igual ao CACHE_NAME em service-worker.js (minhas-contas-v14)
   const STORAGE_KEY = 'minhas-contas-v1';
   const MIGRACAO_ENTRADAS_KEY = 'mc-migracao-entradas-v13';
   const MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
@@ -2341,7 +2341,7 @@
   }
 
   let atualizacaoDisponivel = false;
-  let atualizacaoJaPerguntou = false;
+  let atualizacaoSolicitadaPeloUsuario = false;
 
   function marcarAtualizacaoDisponivel() {
     atualizacaoDisponivel = true;
@@ -2357,6 +2357,7 @@
   }
 
   function aplicarAtualizacaoAgora() {
+    atualizacaoSolicitadaPeloUsuario = true;
     if (!('serviceWorker' in navigator)) {
       window.location.reload();
       return;
@@ -2372,27 +2373,21 @@
     });
   }
 
-  function perguntarAtualizacao() {
-    if (atualizacaoJaPerguntou) return;
-    atualizacaoJaPerguntou = true;
-    mostrarConfirmacao('Uma nova atualização do app está disponível. Deseja atualizar agora?', function() {
-      aplicarAtualizacaoAgora();
-    });
-  }
-
   function clicarSinoAtualizacao() {
-    mostrarConfirmacao('Há uma nova versão do Minhas Contas. Atualizar agora?', function() {
+    mostrarConfirmacao('Há uma nova versão do Minhas Contas. Deseja instalar a atualização agora?', function() {
       aplicarAtualizacaoAgora();
     });
   }
 
   function atualizarSistema() {
     if (!('serviceWorker' in navigator)) {
+      atualizacaoSolicitadaPeloUsuario = true;
       window.location.reload();
       return;
     }
     navigator.serviceWorker.getRegistration().then(function(reg) {
       if (!reg) {
+        atualizacaoSolicitadaPeloUsuario = true;
         window.location.reload();
         return;
       }
@@ -2401,6 +2396,7 @@
           marcarAtualizacaoDisponivel();
           aplicarAtualizacaoAgora();
         } else {
+          atualizacaoSolicitadaPeloUsuario = true;
           window.location.reload();
         }
       });
@@ -2410,9 +2406,9 @@
   function observarAtualizacaoSW(reg) {
     if (!reg) return;
 
+    // Só avisa com o sininho — não atualiza sozinho
     if (reg.waiting && navigator.serviceWorker.controller) {
       marcarAtualizacaoDisponivel();
-      perguntarAtualizacao();
     }
 
     reg.addEventListener('updatefound', function() {
@@ -2421,7 +2417,6 @@
       novoWorker.addEventListener('statechange', function() {
         if (novoWorker.state === 'installed' && navigator.serviceWorker.controller) {
           marcarAtualizacaoDisponivel();
-          perguntarAtualizacao();
         }
       });
     });
@@ -2495,10 +2490,9 @@
   }
 
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-    let regenerandoAposTroca = false;
     navigator.serviceWorker.addEventListener('controllerchange', function() {
-      if (regenerandoAposTroca) return;
-      regenerandoAposTroca = true;
+      // Só recarrega se o usuário pediu a instalação da atualização
+      if (!atualizacaoSolicitadaPeloUsuario) return;
       window.location.reload();
     });
 
