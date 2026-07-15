@@ -931,12 +931,8 @@
           Incluir também a parcela deste mês
         </label>
       </div>
-      <div>
-        <label class="field">Valor esperado (tabela)</label>
-        <input type="text" id="pagValorEsperado" readonly>
-      </div>
-      <div>
-        <label class="field">Valor que você pagou</label>
+      <div class="full">
+        <label class="field">Valor pago</label>
         <div class="input-prefix">
           <span>R$</span>
           <input type="text" id="pagValorPago" inputmode="numeric" placeholder="0,00" autocomplete="off" oninput="onInputMoeda(this); atualizarPreviewPagamento()">
@@ -1009,7 +1005,7 @@
 
 <script>
   // Escopo global (mesmo padrão da Lista de compras) para onclick="..." funcionar
-  const APP_VERSION = 'v10'; // manter igual ao CACHE_NAME em service-worker.js (minhas-contas-v10)
+  const APP_VERSION = 'v11'; // manter igual ao CACHE_NAME em service-worker.js (minhas-contas-v11)
   const STORAGE_KEY = 'minhas-contas-v1';
   const MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
   const MESES_CURTO = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
@@ -1330,18 +1326,17 @@
     document.getElementById('pagIncluiMesWrap').style.display = tipo === 'amortizacao' ? 'block' : 'none';
     const p = calcPreviewPagamento();
     if (!p) return;
-    document.getElementById('pagValorEsperado').value = formatarMoeda(p.esperado);
     const box = document.getElementById('pagEconomiaBox');
     if (p.qtd <= 0) {
       box.innerHTML = 'Nenhuma parcela pendente para registrar neste mês.';
       return;
     }
-    box.innerHTML = 'Vai quitar <strong>' + p.qtd + '</strong> parcela(s). ' +
+    box.innerHTML = 'Quitando <strong>' + p.qtd + '</strong> parcela(s). ' +
       (p.economia > 0
-        ? 'Economia / desconto: <strong class="diff-pos">' + formatarMoeda(p.economia) + '</strong>'
+        ? 'Economia: <strong class="diff-pos">' + formatarMoeda(p.economia) + '</strong>'
         : (p.pago > p.esperado
-          ? 'Pago acima da tabela em <strong class="diff-neg">' + formatarMoeda(p.pago - p.esperado) + '</strong>'
-          : 'Sem economia (valor igual ao da tabela).'));
+          ? 'Pago a mais: <strong class="diff-neg">' + formatarMoeda(p.pago - p.esperado) + '</strong>'
+          : 'Sem economia nesta quitação.'));
   }
 
   function confirmarPagamento() {
