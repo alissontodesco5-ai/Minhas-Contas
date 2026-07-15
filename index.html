@@ -633,7 +633,6 @@
           <th>Descrição</th>
           <th>Obs</th>
           <th>Categoria</th>
-          <th>Natureza</th>
           <th>Início</th>
           <th class="center">Pagas</th>
           <th class="center">Falta</th>
@@ -816,7 +815,7 @@
       <div class="full">
         <label class="field">Tipo de conta</label>
         <select id="cTipo" onchange="alternarCamposTipoConta()">
-          <option value="recorrente">Recorrente (água, luz, aluguel…)</option>
+          <option value="recorrente">Recorrente</option>
           <option value="parcelada">Parcelada / dívida</option>
         </select>
       </div>
@@ -839,13 +838,6 @@
       <div>
         <label class="field">Categoria</label>
         <select id="cCategoria"></select>
-      </div>
-      <div>
-        <label class="field">Natureza</label>
-        <select id="cNatureza">
-          <option value="Fixo">Fixo</option>
-          <option value="Variável">Variável</option>
-        </select>
       </div>
     </div>
     <div class="form-grid" id="camposParcelada" style="display:none;margin-top:12px">
@@ -972,7 +964,7 @@
 
 <script>
   // Escopo global (mesmo padrão da Lista de compras) para onclick="..." funcionar
-  const APP_VERSION = 'v6'; // manter igual ao CACHE_NAME em service-worker.js (minhas-contas-v6)
+  const APP_VERSION = 'v7'; // manter igual ao CACHE_NAME em service-worker.js (minhas-contas-v7)
   const STORAGE_KEY = 'minhas-contas-v1';
   const MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
   const MESES_CURTO = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
@@ -1492,7 +1484,6 @@
             '<div class="conta-meta">' +
               '<span class="chip">Dia ' + (c.diaVencimento || '—') + '</span>' +
               '<span class="chip ' + chipCategoriaClass(c.categoria) + '">' + esc(c.categoria || '—') + '</span>' +
-              '<span class="chip ' + (c.natureza === 'Fixo' ? 'chip-fixo' : 'chip-variavel') + '">' + esc(c.natureza || '—') + '</span>' +
               chipTipo + chipAlerta +
             '</div>' +
           '</div>' +
@@ -1526,7 +1517,6 @@
         '<td>' + esc(c.descricao || '') + '</td>' +
         '<td>' + esc(c.obs || '') + '</td>' +
         '<td><span class="chip ' + chipCategoriaClass(c.categoria) + '">' + esc(c.categoria || '—') + '</span></td>' +
-        '<td><span class="chip ' + (c.natureza === 'Fixo' ? 'chip-fixo' : 'chip-variavel') + '">' + esc(c.natureza || '—') + '</span></td>' +
         '<td>' + (parcelada ? formatarDataBR(c.dataInicio) : '—') + '</td>' +
         '<td class="center">' + (parcelada ? (c.parcelasPagas || 0) : '—') + '</td>' +
         '<td class="center">' + (parcelada ? faltaParcelas(c) : '—') + '</td>' +
@@ -1570,7 +1560,6 @@
       document.getElementById('cDescricao').value = c.descricao || '';
       document.getElementById('cObs').value = c.obs || '';
       document.getElementById('cCategoria').value = c.categoria || state.categorias[0];
-      document.getElementById('cNatureza').value = c.natureza || 'Fixo';
       document.getElementById('cValor').value = c.valor != null ? c.valor : '';
       document.getElementById('cDataInicio').value = c.dataInicio || '';
       document.getElementById('cParcelasPagas').value = c.parcelasPagas || 0;
@@ -1582,7 +1571,6 @@
       document.getElementById('cDescricao').value = '';
       document.getElementById('cObs').value = '';
       document.getElementById('cCategoria').value = state.categorias[0] || '';
-      document.getElementById('cNatureza').value = 'Fixo';
       document.getElementById('cValor').value = '';
       document.getElementById('cDataInicio').value = '';
       document.getElementById('cParcelasPagas').value = 0;
@@ -1612,7 +1600,6 @@
       descricao: descricao,
       obs: document.getElementById('cObs').value.trim(),
       categoria: document.getElementById('cCategoria').value,
-      natureza: document.getElementById('cNatureza').value,
       valor: valor
     };
     if (tipo === 'parcelada') {
