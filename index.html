@@ -252,6 +252,34 @@
     color: var(--texto);
     font-size: 0.95rem;
   }
+  .input-prefix {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 0 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--input-bg);
+  }
+  .input-prefix span {
+    color: var(--muted);
+    font-weight: 700;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+  }
+  .input-prefix input {
+    border: none;
+    background: transparent;
+    padding: 10px 0;
+    width: 100%;
+    min-width: 0;
+    color: var(--texto);
+    font-size: 0.95rem;
+  }
+  .input-prefix:focus-within {
+    border-color: var(--accent);
+  }
   label.field {
     display: block;
     font-size: 0.8rem;
@@ -824,8 +852,11 @@
         <input type="number" id="cDia" min="1" max="31" placeholder="Ex: 10">
       </div>
       <div>
-        <label class="field">Valor mensal / parcela (R$)</label>
-        <input type="number" id="cValor" min="0" step="0.01" placeholder="0,00" oninput="atualizarPreviewDivida()">
+        <label class="field">Valor mensal / parcela</label>
+        <div class="input-prefix">
+          <span>R$</span>
+          <input type="text" id="cValor" inputmode="numeric" placeholder="0,00" autocomplete="off" oninput="onInputMoeda(this); atualizarPreviewDivida()">
+        </div>
       </div>
       <div class="full">
         <label class="field">Descrição</label>
@@ -857,8 +888,11 @@
         <input type="number" id="cParcelasPagas" min="0" step="1" value="0" oninput="atualizarPreviewDivida()">
       </div>
       <div>
-        <label class="field">Total da dívida (R$)</label>
-        <input type="number" id="cTotalDivida" min="0" step="0.01" placeholder="Auto: parcelas × valor" oninput="atualizarPreviewDivida()">
+        <label class="field">Total da dívida</label>
+        <div class="input-prefix">
+          <span>R$</span>
+          <input type="text" id="cTotalDivida" inputmode="numeric" placeholder="Automático" autocomplete="off" oninput="onInputMoeda(this); atualizarPreviewDivida()">
+        </div>
       </div>
       <div class="full" id="previewDivida" style="font-size:0.9rem;color:var(--muted)"></div>
     </div>
@@ -897,8 +931,11 @@
         <input type="text" id="pagValorEsperado" readonly>
       </div>
       <div>
-        <label class="field">Valor que você pagou (R$)</label>
-        <input type="number" id="pagValorPago" min="0" step="0.01" oninput="atualizarPreviewPagamento()">
+        <label class="field">Valor que você pagou</label>
+        <div class="input-prefix">
+          <span>R$</span>
+          <input type="text" id="pagValorPago" inputmode="numeric" placeholder="0,00" autocomplete="off" oninput="onInputMoeda(this); atualizarPreviewPagamento()">
+        </div>
       </div>
       <div class="full" id="pagEconomiaBox" style="padding:10px 12px;border-radius:10px;background:var(--chip-bg);border:1px solid var(--border);font-size:0.9rem"></div>
     </div>
@@ -919,8 +956,11 @@
         <input type="text" id="eClasse" placeholder="Ex: Pagamento, Vale, Aluguel, VA">
       </div>
       <div class="full">
-        <label class="field">Valor deste mês (R$)</label>
-        <input type="number" id="eValor" min="0" step="0.01" value="0">
+        <label class="field">Valor deste mês</label>
+        <div class="input-prefix">
+          <span>R$</span>
+          <input type="text" id="eValor" inputmode="numeric" placeholder="0,00" autocomplete="off" oninput="onInputMoeda(this)">
+        </div>
       </div>
     </div>
     <div class="modal-actions">
@@ -964,7 +1004,7 @@
 
 <script>
   // Escopo global (mesmo padrão da Lista de compras) para onclick="..." funcionar
-  const APP_VERSION = 'v7'; // manter igual ao CACHE_NAME em service-worker.js (minhas-contas-v7)
+  const APP_VERSION = 'v8'; // manter igual ao CACHE_NAME em service-worker.js (minhas-contas-v8)
   const STORAGE_KEY = 'minhas-contas-v1';
   const MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
   const MESES_CURTO = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
@@ -1063,6 +1103,45 @@
 
   function formatarMoeda(valor) {
     return (Number(valor) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+
+  function formatarMoedaInput(valor) {
+    return (Number(valor) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  /** Converte texto tipo "1.234,56" ou digitos mascarados em número. */
+  function parseMoeda(str) {
+    if (str == null || str === '') return 0;
+    if (typeof str === 'number') return isFinite(str) ? str : 0;
+    const s = String(str).trim();
+    if (!s) return 0;
+    // Se tem vírgula, trata como formato BR completo
+    if (s.indexOf(',') >= 0) {
+      const n = Number(s.replace(/\./g, '').replace(',', '.').replace(/[^\d.-]/g, ''));
+      return isFinite(n) ? n : 0;
+    }
+    // Só dígitos: máscara centavos (18281 -> 182,81)
+    const digits = s.replace(/\D/g, '');
+    if (!digits) return 0;
+    return Number(digits) / 100;
+  }
+
+  function onInputMoeda(el) {
+    if (!el) return;
+    const digits = String(el.value).replace(/\D/g, '');
+    const n = digits ? Number(digits) / 100 : 0;
+    el.value = formatarMoedaInput(n);
+  }
+
+  function setMoedaInput(id, valor) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.value = formatarMoedaInput(valor);
+  }
+
+  function getMoedaInput(id) {
+    const el = document.getElementById(id);
+    return el ? parseMoeda(el.value) : 0;
   }
 
   function formatarPct(valor) {
@@ -1168,12 +1247,12 @@
       box.textContent = '';
       return;
     }
-    const valor = Number(document.getElementById('cValor').value) || 0;
+    const valor = getMoedaInput('cValor');
     const totalP = Number(document.getElementById('cTotalParcelas').value) || 0;
     const pagas = Number(document.getElementById('cParcelasPagas').value) || 0;
     const falta = Math.max(0, totalP - pagas);
-    let totalD = document.getElementById('cTotalDivida').value;
-    totalD = totalD === '' ? totalP * valor : Number(totalD) || 0;
+    const rawDivida = document.getElementById('cTotalDivida').value.trim();
+    const totalD = rawDivida === '' ? totalP * valor : parseMoeda(rawDivida);
     const faltaQ = falta * valor;
     box.innerHTML = 'Falta <strong>' + falta + '</strong> parcela(s) · Total dívida <strong>' + formatarMoeda(totalD) + '</strong> · Falta quitar ~ <strong>' + formatarMoeda(faltaQ) + '</strong>';
   }
@@ -1187,7 +1266,7 @@
     document.getElementById('pagTipo').value = tipoPadrao || 'parcela';
     document.getElementById('pagParcelasQtd').value = 1;
     document.getElementById('pagIncluiMes').checked = true;
-    document.getElementById('pagValorPago').value = Number(c.valor) || 0;
+    setMoedaInput('pagValorPago', Number(c.valor) || 0);
     atualizarPreviewPagamento();
     document.getElementById('modalPagamento').classList.add('open');
   }
@@ -1214,7 +1293,7 @@
       if (qtd > falta) qtd = falta;
     }
     const esperado = qtd * valorParcela;
-    let pago = Number(document.getElementById('pagValorPago').value);
+    let pago = getMoedaInput('pagValorPago');
     if (!isFinite(pago)) pago = esperado;
     const economia = Math.max(0, esperado - pago);
     return { c: c, tipo: tipo, qtd: qtd, esperado: esperado, pago: pago, economia: economia, valorParcela: valorParcela };
@@ -1560,18 +1639,19 @@
       document.getElementById('cDescricao').value = c.descricao || '';
       document.getElementById('cObs').value = c.obs || '';
       document.getElementById('cCategoria').value = c.categoria || state.categorias[0];
-      document.getElementById('cValor').value = c.valor != null ? c.valor : '';
+      setMoedaInput('cValor', c.valor != null ? c.valor : 0);
       document.getElementById('cDataInicio').value = c.dataInicio || '';
       document.getElementById('cParcelasPagas').value = c.parcelasPagas || 0;
       document.getElementById('cTotalParcelas').value = c.totalParcelas || 1;
-      document.getElementById('cTotalDivida').value = c.totalDivida != null ? c.totalDivida : '';
+      if (c.totalDivida != null && c.totalDivida !== '') setMoedaInput('cTotalDivida', c.totalDivida);
+      else document.getElementById('cTotalDivida').value = '';
     } else {
       document.getElementById('cTipo').value = 'recorrente';
       document.getElementById('cDia').value = '';
       document.getElementById('cDescricao').value = '';
       document.getElementById('cObs').value = '';
       document.getElementById('cCategoria').value = state.categorias[0] || '';
-      document.getElementById('cValor').value = '';
+      setMoedaInput('cValor', 0);
       document.getElementById('cDataInicio').value = '';
       document.getElementById('cParcelasPagas').value = 0;
       document.getElementById('cTotalParcelas').value = 1;
@@ -1593,7 +1673,7 @@
     }
     const id = document.getElementById('contaId').value;
     const tipo = document.getElementById('cTipo').value;
-    const valor = Number(document.getElementById('cValor').value) || 0;
+    const valor = getMoedaInput('cValor');
     const dados = {
       tipo: tipo,
       diaVencimento: Number(document.getElementById('cDia').value) || null,
@@ -1605,8 +1685,8 @@
     if (tipo === 'parcelada') {
       const totalParcelas = Math.max(1, Number(document.getElementById('cTotalParcelas').value) || 1);
       const parcelasPagas = Math.max(0, Number(document.getElementById('cParcelasPagas').value) || 0);
-      const totalDividaRaw = document.getElementById('cTotalDivida').value;
-      const totalDivida = totalDividaRaw === '' ? totalParcelas * valor : Number(totalDividaRaw) || 0;
+      const totalDividaRaw = document.getElementById('cTotalDivida').value.trim();
+      const totalDivida = totalDividaRaw === '' ? totalParcelas * valor : parseMoeda(totalDividaRaw);
       const falta = Math.max(0, totalParcelas - parcelasPagas);
       dados.dataInicio = document.getElementById('cDataInicio').value || '';
       dados.totalParcelas = totalParcelas;
@@ -1666,7 +1746,10 @@
       return `<div class="entrada-row">
         <div><span class="chip chip-entrada">${esc(e.classe)}</span></div>
         <div>
-          <input type="number" min="0" step="0.01" value="${val}" onchange="atualizarValorEntrada('${e.id}', this.value)" aria-label="Valor">
+          <div class="input-prefix">
+            <span>R$</span>
+            <input type="text" inputmode="numeric" value="${formatarMoedaInput(val)}" oninput="onInputMoeda(this)" onchange="atualizarValorEntrada('${e.id}', this.value)" aria-label="Valor" autocomplete="off">
+          </div>
         </div>
         <div class="conta-actions">
           <button class="btn btn-secondary btn-icon" type="button" onclick="abrirModalEntrada('${e.id}')" aria-label="Editar">✎</button>
@@ -1680,7 +1763,7 @@
   function atualizarValorEntrada(id, valor) {
     const e = state.entradas.find(x => x.id === id);
     if (!e) return;
-    const n = Number(valor) || 0;
+    const n = parseMoeda(valor);
     e.valor = n;
     if (!e.valoresMes) e.valoresMes = {};
     e.valoresMes[mesKeyAtual()] = n;
@@ -1696,10 +1779,10 @@
       const e = state.entradas.find(x => x.id === id);
       if (!e) return;
       document.getElementById('eClasse').value = e.classe || '';
-      document.getElementById('eValor').value = entradaValorMes(e, anoAtual, mesAtual);
+      setMoedaInput('eValor', entradaValorMes(e, anoAtual, mesAtual));
     } else {
       document.getElementById('eClasse').value = '';
-      document.getElementById('eValor').value = 0;
+      setMoedaInput('eValor', 0);
     }
     document.getElementById('modalEntrada').classList.add('open');
   }
@@ -1715,7 +1798,7 @@
       return;
     }
     const id = document.getElementById('entradaId').value;
-    const valor = Number(document.getElementById('eValor').value) || 0;
+    const valor = getMoedaInput('eValor');
     if (id) {
       const i = state.entradas.findIndex(e => e.id === id);
       if (i >= 0) {
