@@ -2555,6 +2555,12 @@
           '<input class="check-pago" type="checkbox" ' + (pago ? 'checked' : '') + ' onchange="setPago(\'' + c.id + '\', this.checked)" aria-label="Pago">' +
           '<div class="conta-main" onclick="toggleExpand(\'' + c.id + '\')">' +
             '<div class="conta-titulo">' + esc(c.descricao || 'Sem descrição') + '</div>' +
+            (function() {
+              const parts = [];
+              if (c.responsavel) parts.push(esc(c.responsavel));
+              if (c.obs) parts.push(esc(c.obs));
+              return parts.length ? '<div class="cartao-meta">' + parts.join(' · ') + '</div>' : '';
+            })() +
             '<div class="conta-meta">' +
               '<span class="chip">Dia ' + (c.diaVencimento || '—') + '</span>' +
               '<span class="chip ' + chipCategoriaClass(c.categoria) + '">' + esc(c.categoria || '—') + '</span>' +
