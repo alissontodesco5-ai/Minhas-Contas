@@ -138,6 +138,12 @@
   }
   .btn-sino.visible { display: inline-flex; }
   .btn-sino.pulsar { animation: sino-pulsar 1.2s ease-in-out infinite; }
+  .btn-sino.btn-sino-update {
+    background: rgba(255, 255, 255, 0.28);
+  }
+  .btn-sino.btn-sino-update .bell-dot {
+    background: #fbbf24;
+  }
   .btn-sino svg { width: 22px; height: 22px; fill: currentColor; }
   .bell-dot {
     position: absolute;
@@ -591,6 +597,10 @@
         <div class="mes-label" id="mesLabel">—</div>
         <button type="button" onclick="mudarMes(1)" aria-label="Próximo mês">›</button>
       </div>
+      <button type="button" class="btn-sino btn-sino-update" id="btnSinoAtualizacao" onclick="clicarSinoAtualizacao()" aria-label="Nova atualização disponível">
+        <svg viewBox="0 0 24 24"><path d="M12 2a1 1 0 0 1 1 1v1.06A7 7 0 0 1 19 11v4l1.7 2.55a1 1 0 0 1-.83 1.45H4.13a1 1 0 0 1-.83-1.45L5 15v-4a7 7 0 0 1 6-6.94V3a1 1 0 0 1 1-1zm0 20a2.5 2.5 0 0 1-2.45-2h4.9A2.5 2.5 0 0 1 12 22z"/></svg>
+        <span class="bell-dot"></span>
+      </button>
       <button type="button" class="btn-sino" id="btnSinoVencimento" onclick="abrirAlertasVencimento()" aria-label="Contas próximas do vencimento">
         <svg viewBox="0 0 24 24"><path d="M12 2a1 1 0 0 1 1 1v1.06A7 7 0 0 1 19 11v4l1.7 2.55a1 1 0 0 1-.83 1.45H4.13a1 1 0 0 1-.83-1.45L5 15v-4a7 7 0 0 1 6-6.94V3a1 1 0 0 1 1-1zm0 20a2.5 2.5 0 0 1-2.45-2h4.9A2.5 2.5 0 0 1 12 22z"/></svg>
         <span class="bell-dot"></span>
@@ -922,7 +932,7 @@
 
 <script>
   // Escopo global (mesmo padrão da Lista de compras) para onclick="..." funcionar
-  const APP_VERSION = 'v4'; // manter igual ao CACHE_NAME em service-worker.js (minhas-contas-v4)
+  const APP_VERSION = 'v5'; // manter igual ao CACHE_NAME em service-worker.js (minhas-contas-v5)
   const STORAGE_KEY = 'minhas-contas-v1';
   const MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
   const MESES_CURTO = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
@@ -1893,20 +1903,50 @@
       .replace(/"/g, '&quot;');
   }
 
+  let atualizacaoDisponivel = false;
+  let atualizacaoJaPerguntou = false;
+
   function marcarAtualizacaoDisponivel() {
-    const btn = document.getElementById('navBtnAtualizacao');
-    btn.style.display = '';
-    btn.classList.add('tem-atualizacao');
+    atualizacaoDisponivel = true;
+    const btnNav = document.getElementById('navBtnAtualizacao');
+    if (btnNav) {
+      btnNav.style.display = '';
+      btnNav.classList.add('tem-atualizacao');
+    }
+    const btnHeader = document.getElementById('btnSinoAtualizacao');
+    if (btnHeader) {
+      btnHeader.classList.add('visible', 'pulsar');
+    }
   }
 
-  function perguntarAtualizacao() {
-    mostrarConfirmacao('Uma nova atualização do app está disponível. Deseja atualizar agora?', () => {
+  function aplicarAtualizacaoAgora() {
+    if (!('serviceWorker' in navigator)) {
+      window.location.reload();
+      return;
+    }
+    navigator.serviceWorker.getRegistration().then(function(reg) {
+      if (reg && reg.waiting) {
+        reg.waiting.postMessage('SKIP_WAITING');
+      } else {
+        window.location.reload();
+      }
+    }).catch(function() {
       window.location.reload();
     });
   }
 
+  function perguntarAtualizacao() {
+    if (atualizacaoJaPerguntou) return;
+    atualizacaoJaPerguntou = true;
+    mostrarConfirmacao('Uma nova atualização do app está disponível. Deseja atualizar agora?', function() {
+      aplicarAtualizacaoAgora();
+    });
+  }
+
   function clicarSinoAtualizacao() {
-    perguntarAtualizacao();
+    mostrarConfirmacao('Há uma nova versão do Minhas Contas. Atualizar agora?', function() {
+      aplicarAtualizacaoAgora();
+    });
   }
 
   function atualizarSistema() {
@@ -1914,25 +1954,54 @@
       window.location.reload();
       return;
     }
-    navigator.serviceWorker.getRegistration().then((reg) => {
+    navigator.serviceWorker.getRegistration().then(function(reg) {
       if (!reg) {
         window.location.reload();
         return;
       }
-      reg.update().finally(() => {
-        window.location.reload();
+      reg.update().finally(function() {
+        if (reg.waiting) {
+          marcarAtualizacaoDisponivel();
+          aplicarAtualizacaoAgora();
+        } else {
+          window.location.reload();
+        }
       });
     });
+  }
+
+  function observarAtualizacaoSW(reg) {
+    if (!reg) return;
+
+    if (reg.waiting && navigator.serviceWorker.controller) {
+      marcarAtualizacaoDisponivel();
+      perguntarAtualizacao();
+    }
+
+    reg.addEventListener('updatefound', function() {
+      const novoWorker = reg.installing;
+      if (!novoWorker) return;
+      novoWorker.addEventListener('statechange', function() {
+        if (novoWorker.state === 'installed' && navigator.serviceWorker.controller) {
+          marcarAtualizacaoDisponivel();
+          perguntarAtualizacao();
+        }
+      });
+    });
+
+    setInterval(function() {
+      reg.update().catch(function() {});
+    }, 30 * 60 * 1000);
   }
 
   function exibirVersaoApp() {
     const el = document.getElementById('appVersao');
     el.textContent = 'Versão: ' + APP_VERSION;
     if (!('caches' in window)) return;
-    caches.keys().then((chaves) => {
-      const nomeCache = chaves.find((k) => k.startsWith('minhas-contas-'));
+    caches.keys().then(function(chaves) {
+      const nomeCache = chaves.find(function(k) { return k.startsWith('minhas-contas-'); });
       if (nomeCache) el.textContent = 'Versão: ' + nomeCache.replace('minhas-contas-', '');
-    }).catch(() => {});
+    }).catch(function() {});
   }
 
   function appJaInstalado() {
@@ -1989,19 +2058,30 @@
   }
 
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+    let regenerandoAposTroca = false;
+    navigator.serviceWorker.addEventListener('controllerchange', function() {
+      if (regenerandoAposTroca) return;
+      regenerandoAposTroca = true;
+      window.location.reload();
+    });
+
     window.addEventListener('load', function() {
       navigator.serviceWorker.register('service-worker.js').then(function(reg) {
-        reg.addEventListener('updatefound', function() {
-          const novoWorker = reg.installing;
-          if (!novoWorker) return;
-          novoWorker.addEventListener('statechange', function() {
-            if (novoWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              marcarAtualizacaoDisponivel();
-              perguntarAtualizacao();
-            }
-          });
-        });
+        observarAtualizacaoSW(reg);
+        reg.update().catch(function() {});
       }).catch(function() {});
+    });
+
+    document.addEventListener('visibilitychange', function() {
+      if (document.hidden) return;
+      navigator.serviceWorker.getRegistration().then(function(reg) {
+        if (!reg) return;
+        reg.update().then(function() {
+          if (reg.waiting && navigator.serviceWorker.controller) {
+            marcarAtualizacaoDisponivel();
+          }
+        }).catch(function() {});
+      });
     });
   }
 
