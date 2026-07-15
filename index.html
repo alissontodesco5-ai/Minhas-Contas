@@ -251,6 +251,11 @@
     background: var(--input-bg);
     color: var(--texto);
     font-size: 0.95rem;
+    outline: none;
+  }
+  input:focus, select:focus, textarea:focus {
+    border-color: rgba(46, 196, 182, 0.65);
+    box-shadow: 0 0 0 2px rgba(46, 196, 182, 0.18);
   }
   .input-prefix {
     display: flex;
@@ -276,9 +281,16 @@
     min-width: 0;
     color: var(--texto);
     font-size: 0.95rem;
+    outline: none;
+    box-shadow: none;
+  }
+  .input-prefix input:focus {
+    border: none;
+    box-shadow: none;
   }
   .input-prefix:focus-within {
-    border-color: var(--accent);
+    border-color: rgba(46, 196, 182, 0.65);
+    box-shadow: 0 0 0 2px rgba(46, 196, 182, 0.18);
   }
   label.field {
     display: block;
@@ -1004,7 +1016,7 @@
 
 <script>
   // Escopo global (mesmo padrão da Lista de compras) para onclick="..." funcionar
-  const APP_VERSION = 'v8'; // manter igual ao CACHE_NAME em service-worker.js (minhas-contas-v8)
+  const APP_VERSION = 'v9'; // manter igual ao CACHE_NAME em service-worker.js (minhas-contas-v9)
   const STORAGE_KEY = 'minhas-contas-v1';
   const MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
   const MESES_CURTO = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
