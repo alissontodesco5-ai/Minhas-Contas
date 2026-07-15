@@ -418,8 +418,12 @@
     align-items: flex-end;
     justify-content: center;
     padding: 0;
+    pointer-events: none;
   }
-  .modal-overlay.open { display: flex; }
+  .modal-overlay.open {
+    display: flex;
+    pointer-events: auto;
+  }
   .modal-box {
     background: var(--card);
     border-radius: 18px 18px 0 0;
@@ -813,8 +817,8 @@
 </div>
 
 <script>
-(function() {
-  const APP_VERSION = 'v2';
+  // Escopo global (mesmo padrão da Lista de compras) para onclick="..." funcionar
+  const APP_VERSION = 'v3'; // manter igual ao CACHE_NAME em service-worker.js (minhas-contas-v3)
   const STORAGE_KEY = 'minhas-contas-v1';
   const MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
   const MESES_CURTO = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
@@ -828,15 +832,14 @@
   const TAMANHOS_FONTE = { pequeno: '87.5%', medio: '100%', grande: '112.5%' };
   const DIAS_ALERTA = 3;
 
-  let state = carregar();
+  let state;
   let viewAtual = 'contas';
   let deferredPrompt = null;
   let confirmacaoCallback = null;
-
+  let anoAtual;
+  let mesAtual;
+  let anoResumo;
   const hoje = new Date();
-  let anoAtual = state.mesRef ? Number(state.mesRef.split('-')[0]) : hoje.getFullYear();
-  let mesAtual = state.mesRef ? Number(state.mesRef.split('-')[1]) - 1 : hoje.getMonth();
-  let anoResumo = anoAtual;
 
   function uid() {
     return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
@@ -866,7 +869,7 @@
   function dadosIniciais() {
     return {
       contas: [],
-      entradas: ENTRADAS_PADRAO.map(e => ({ id: uid(), ...e, valoresMes: {} })),
+      entradas: ENTRADAS_PADRAO.map(function(e) { return { id: uid(), classe: e.classe, valor: e.valor, valoresMes: {} }; }),
       categorias: CATEGORIAS_PADRAO.slice(),
       pagosPorMes: {},
       mesRef: mesKey(hoje.getFullYear(), hoje.getMonth())
@@ -880,7 +883,7 @@
       const data = JSON.parse(raw);
       if (!Array.isArray(data.contas)) data.contas = [];
       if (!Array.isArray(data.entradas)) {
-        data.entradas = ENTRADAS_PADRAO.map(e => ({ id: uid(), ...e, valoresMes: {} }));
+        data.entradas = ENTRADAS_PADRAO.map(function(e) { return { id: uid(), classe: e.classe, valor: e.valor, valoresMes: {} }; });
       } else {
         data.entradas = data.entradas.map(normalizarEntrada);
       }
@@ -891,6 +894,11 @@
       return dadosIniciais();
     }
   }
+
+  state = carregar();
+  anoAtual = state.mesRef ? Number(state.mesRef.split('-')[0]) : hoje.getFullYear();
+  mesAtual = state.mesRef ? Number(state.mesRef.split('-')[1]) - 1 : hoje.getMonth();
+  anoResumo = anoAtual;
 
   function salvar() {
     state.mesRef = mesKeyAtual();
@@ -1723,82 +1731,60 @@
     }
   }
 
-  window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    atualizarBotaoInstalar();
-  });
-
-  window.addEventListener('appinstalled', () => {
-    deferredPrompt = null;
-    atualizarBotaoInstalar();
-  });
+  try {
+    window.addEventListener('beforeinstallprompt', function(e) {
+      e.preventDefault();
+      deferredPrompt = e;
+      atualizarBotaoInstalar();
+    });
+    window.addEventListener('appinstalled', function() {
+      deferredPrompt = null;
+      atualizarBotaoInstalar();
+    });
+  } catch (e) {}
 
   if (window.matchMedia) {
-    window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => {
-      if ((localStorage.getItem('mc-tema') || 'sistema') === 'sistema') aplicarTemaResolvido();
-    });
+    try {
+      const mq = window.matchMedia('(prefers-color-scheme: light)');
+      const onChange = function() {
+        if ((localStorage.getItem('mc-tema') || 'sistema') === 'sistema') aplicarTemaResolvido();
+      };
+      if (mq.addEventListener) mq.addEventListener('change', onChange);
+      else if (mq.addListener) mq.addListener(onChange);
+    } catch (e) {}
   }
 
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('service-worker.js').then((reg) => {
-        reg.addEventListener('updatefound', () => {
+    window.addEventListener('load', function() {
+      navigator.serviceWorker.register('service-worker.js').then(function(reg) {
+        reg.addEventListener('updatefound', function() {
           const novoWorker = reg.installing;
           if (!novoWorker) return;
-          novoWorker.addEventListener('statechange', () => {
+          novoWorker.addEventListener('statechange', function() {
             if (novoWorker.state === 'installed' && navigator.serviceWorker.controller) {
               marcarAtualizacaoDisponivel();
               perguntarAtualizacao();
             }
           });
         });
-      }).catch(() => {});
+      }).catch(function() {});
     });
   }
 
-  window.mostrarView = mostrarView;
-  window.mudarMes = mudarMes;
-  window.mudarAno = mudarAno;
-  window.setPago = setPago;
-  window.toggleExpand = toggleExpand;
-  window.abrirModalConta = abrirModalConta;
-  window.fecharModalConta = fecharModalConta;
-  window.salvarConta = salvarConta;
-  window.excluirConta = excluirConta;
-  window.renderContas = renderContas;
-  window.abrirModalEntrada = abrirModalEntrada;
-  window.fecharModalEntrada = fecharModalEntrada;
-  window.salvarEntrada = salvarEntrada;
-  window.excluirEntrada = excluirEntrada;
-  window.atualizarValorEntrada = atualizarValorEntrada;
-  window.definirTema = definirTema;
-  window.definirTamanhoFonte = definirTamanhoFonte;
-  window.adicionarCategoria = adicionarCategoria;
-  window.removerCategoria = removerCategoria;
-  window.exportarDados = exportarDados;
-  window.importarDados = importarDados;
-  window.confirmarReset = confirmarReset;
-  window.instalarApp = instalarApp;
-  window.atualizarSistema = atualizarSistema;
-  window.clicarSinoAtualizacao = clicarSinoAtualizacao;
-  window.abrirAlertasVencimento = abrirAlertasVencimento;
-  window.fecharVencimentos = fecharVencimentos;
-  window.fecharAlerta = fecharAlerta;
-  window.fecharConfirmacao = fecharConfirmacao;
-  window.executarConfirmacao = executarConfirmacao;
-
-  if (!localStorage.getItem('mc-tema')) localStorage.setItem('mc-tema', 'sistema');
-  aplicarTemaResolvido();
-  definirTamanhoFonte(localStorage.getItem('mc-fonte') || 'medio', false);
-  renderTemaButtons();
-  atualizarLabelMes();
-  renderContas();
-  atualizarTotais();
-  atualizarSinoVencimento();
-  exibirVersaoApp();
-  atualizarBotaoInstalar();
-})();
+  try {
+    if (!localStorage.getItem('mc-tema')) localStorage.setItem('mc-tema', 'sistema');
+    aplicarTemaResolvido();
+    definirTamanhoFonte(localStorage.getItem('mc-fonte') || 'medio', false);
+    renderTemaButtons();
+    atualizarLabelMes();
+    renderContas();
+    atualizarTotais();
+    atualizarSinoVencimento();
+    exibirVersaoApp();
+    atualizarBotaoInstalar();
+  } catch (err) {
+    console.error('Erro ao iniciar Minhas Contas:', err);
+  }
 </script>
 </body>
 </html>
