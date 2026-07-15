@@ -4,7 +4,7 @@ function mostrarView(nome) {
     document.getElementById('view' + v.charAt(0).toUpperCase() + v.slice(1)).classList.toggle('active', v === nome);
     document.getElementById('nav' + v.charAt(0).toUpperCase() + v.slice(1)).classList.toggle('active', v === nome);
   });
-  const titles = { contas: 'Contas', fixas: 'Contas fixas', entradas: 'Entradas', resumo: 'Resumo', ajustes: 'Ajustes' };
+  const titles = { contas: 'Contas', fixas: 'Variáveis', entradas: 'Entradas', resumo: 'Resumo', ajustes: 'Ajustes' };
   document.getElementById('headerTitle').textContent = titles[nome] || 'Minhas Contas';
   document.getElementById('mesNav').style.display = (nome === 'ajustes') ? 'none' : 'flex';
   document.getElementById('totalsBar').hidden = (nome === 'ajustes');
@@ -56,6 +56,7 @@ try {
   exibirVersaoApp();
   atualizarBotaoInstalar();
   mostrarNovidadesAposAtualizar();
+  setTimeout(function() { lembrarExportarBackup(); }, 2800);
   setInterval(function() { verificarNotificacoesVencimento(); }, 60 * 60 * 1000);
 } catch (err) {
   console.error('Erro ao iniciar Minhas Contas:', err);

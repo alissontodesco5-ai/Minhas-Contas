@@ -25,8 +25,8 @@
   --shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
   --radius: 18px;
   --radius-sm: 12px;
-  --font: "Manrope", system-ui, sans-serif;
-  --font-display: "Sora", "Manrope", system-ui, sans-serif;
+  --font: "Avenir Next", "Segoe UI", "Helvetica Neue", sans-serif;
+  --font-display: "Trebuchet MS", "Avenir Next", "Segoe UI", sans-serif;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 [data-theme="light"] {
@@ -211,6 +211,12 @@ header h1 {
 .bottom-nav button.tem-vencimento {
   color: var(--accent);
   animation: sino-pulsar 1.2s ease-in-out infinite;
+}
+.view-hint {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.4;
 }
 .bottom-nav button.tem-atualizacao .bell-dot,
 .bottom-nav button.tem-vencimento .bell-dot { display: block; }

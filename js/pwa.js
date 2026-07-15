@@ -50,14 +50,14 @@ function atualizarStatusNotificacoes() {
     return;
   }
   if (Notification.permission === 'granted') {
-    el.textContent = 'Notificações ativas. Avisamos perto do vencimento e quando atrasar.';
+    el.textContent = 'Notificações ativas. O app verifica vencimentos ao abrir e a cada hora com ele em uso — avisos não disparam com o app totalmente fechado.';
     btn.style.display = 'none';
   } else if (Notification.permission === 'denied') {
     el.textContent = 'Permissão bloqueada. Ative nas configurações do aparelho/navegador.';
     btn.textContent = 'Permissão bloqueada';
     btn.disabled = true;
   } else {
-    el.textContent = 'Toque em Ativar para permitir avisos no aparelho.';
+    el.textContent = 'Toque em Ativar para permitir avisos no aparelho. Funcionam melhor com o app aberto ou em segundo plano recente.';
     btn.style.display = '';
     btn.disabled = false;
     btn.textContent = 'Ativar notificações';
@@ -77,7 +77,7 @@ function ativarNotificacoes() {
     atualizarStatusNotificacoes();
     if (perm === 'granted') {
       verificarNotificacoesVencimento(true);
-      mostrarAlerta('Notificações ativadas! Você será avisado quando contas estiverem perto do vencimento ou atrasadas.');
+      mostrarAlerta('Notificações ativadas. O app avisa contas perto do vencimento ou atrasadas ao abrir e enquanto estiver em uso. Com o app fechado, o celular pode não disparar o aviso.');
     } else if (perm === 'denied') {
       mostrarAlerta('Permissão negada. Você pode liberar depois nas configurações do aparelho.');
     }
@@ -188,11 +188,7 @@ let novidadesEmCache = null;
 
 function marcarAtualizacaoDisponivel(abrirAviso) {
   atualizacaoDisponivel = true;
-  const btnNav = document.getElementById('navBtnAtualizacao');
-  if (btnNav) {
-    btnNav.style.display = '';
-    btnNav.classList.add('tem-atualizacao');
-  }
+  if (typeof atualizarNavAvisos === 'function') atualizarNavAvisos();
   if (abrirAviso !== false && !modalAtualizacaoJaMostrado) {
     modalAtualizacaoJaMostrado = true;
     abrirModalAtualizacao();

@@ -176,14 +176,16 @@ function dadosFicticios() {
 }
 
 function carregarDadosFicticios() {
-  mostrarConfirmacao('Substituir os dados atuais pelos exemplos fictícios?', function() {
+  mostrarConfirmacao('Isso APAGA os dados atuais e carrega apenas exemplos fictícios para testar. Continuar?', function() {
     state = dadosFicticios();
+    try { localStorage.setItem(DEMO_SEED_KEY, '1'); } catch (e) {}
     anoAtual = hoje.getFullYear();
     mesAtual = hoje.getMonth();
     anoResumo = anoAtual;
     salvar();
+    atualizarLabelMes();
     renderTudo();
-    mostrarAlerta('Dados de exemplo carregados.');
+    mostrarAlerta('Exemplos carregados. Apague ou edite quando quiser usar seus dados reais.');
   });
 }
 
@@ -252,7 +254,7 @@ function carregar() {
       } else {
         localStorage.setItem(MIGRACAO_ENTRADAS_KEY, '1');
         localStorage.setItem(DEMO_SEED_KEY, '1');
-        return dadosFicticios();
+        return dadosIniciais();
       }
     }
 
@@ -264,7 +266,7 @@ function carregar() {
         return backup;
       }
       localStorage.setItem(DEMO_SEED_KEY, '1');
-      return dadosFicticios();
+      return dadosIniciais();
     }
 
     // v13: zera entradas uma única vez (já aplicado na maioria dos aparelhos)
@@ -274,13 +276,9 @@ function carregar() {
       try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch (e) {}
     }
 
-    // Uma vez: se ainda não há registros, carrega exemplos fictícios
+    // Só marca a flag — não força mais dados de exemplo sobre storage vazio
     if (!localStorage.getItem(DEMO_SEED_KEY)) {
       localStorage.setItem(DEMO_SEED_KEY, '1');
-      if (!estadoTemRegistros(data)) {
-        data = dadosFicticios();
-        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch (e) {}
-      }
     }
 
     gravarBackup(data);
@@ -288,7 +286,7 @@ function carregar() {
   } catch (err) {
     const backup = normalizarEstado(lerStorageJson(BACKUP_KEY));
     if (backup) return backup;
-    return dadosFicticios();
+    return dadosIniciais();
   }
 }
 

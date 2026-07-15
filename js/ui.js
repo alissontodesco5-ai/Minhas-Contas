@@ -9,6 +9,19 @@ function renderAjustes() {
       <button class="btn btn-danger btn-icon" type="button" data-cat="${esc(c)}" onclick="removerCategoria(this.getAttribute('data-cat'))" aria-label="Remover">✕</button>
     </div>
   `).join('');
+  const hint = document.getElementById('backupExportHint');
+  if (hint) {
+    try {
+      const raw = localStorage.getItem(EXPORT_LEMBRETE_KEY);
+      if (!raw) hint.textContent = 'Ainda não houve export neste aparelho.';
+      else {
+        const d = new Date(Number(raw));
+        hint.textContent = 'Último export: ' + d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      }
+    } catch (e) {
+      hint.textContent = '';
+    }
+  }
 }
 
 function adicionarCategoria() {
@@ -84,6 +97,9 @@ function exportarDados() {
   a.download = 'minhas-contas-backup-' + mesKeyAtual() + '.json';
   a.click();
   URL.revokeObjectURL(a.href);
+  try { localStorage.setItem(EXPORT_LEMBRETE_KEY, String(Date.now())); } catch (e) {}
+  const hint = document.getElementById('backupExportHint');
+  if (hint) hint.textContent = 'Último export: agora';
 }
 
 function importarDados(event) {
@@ -94,20 +110,23 @@ function importarDados(event) {
   reader.onload = () => {
     try {
       const data = JSON.parse(reader.result);
-      if (!data || !Array.isArray(data.contas)) throw new Error('Formato inválido');
+      if (!data || typeof data !== 'object') throw new Error('Formato inválido');
       mostrarConfirmacao('Importar substitui todos os dados atuais. Continuar?', () => {
-        state = {
+        const normalizado = normalizarEstado({
           contas: data.contas || [],
-          entradas: (data.entradas || []).map(normalizarEntrada),
-          categorias: data.categorias && data.categorias.length ? data.categorias : CATEGORIAS_PADRAO.slice(),
+          entradas: data.entradas || [],
+          categorias: data.categorias,
           pagosPorMes: data.pagosPorMes || {},
           mesRef: data.mesRef || mesKeyAtual()
-        };
+        });
+        if (!normalizado) throw new Error('Formato inválido');
+        state = normalizado;
         if (state.mesRef) {
           const p = state.mesRef.split('-');
           anoAtual = Number(p[0]);
           mesAtual = Number(p[1]) - 1;
         }
+        try { localStorage.setItem(DEMO_SEED_KEY, '1'); } catch (e) {}
         salvar();
         renderTudo();
         mostrarAlerta('Dados importados com sucesso.');
@@ -122,10 +141,31 @@ function importarDados(event) {
 function confirmarReset() {
   mostrarConfirmacao('Apagar TODOS os dados deste aparelho?', () => {
     state = dadosIniciais();
+    try { localStorage.setItem(DEMO_SEED_KEY, '1'); } catch (e) {}
     salvar();
     renderTudo();
     mostrarAlerta('Dados apagados.');
   });
+}
+
+function lembrarExportarBackup() {
+  try {
+    const raw = localStorage.getItem(EXPORT_LEMBRETE_KEY);
+    const agora = Date.now();
+    const ultimo = raw ? Number(raw) : 0;
+    const dias = 14;
+    if (ultimo && (agora - ultimo) < dias * 86400000) return;
+    if (!estadoTemRegistros(state)) return;
+    const d = new Date();
+    const dia = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    const avisoHoje = localStorage.getItem('mc-export-aviso-dia');
+    if (avisoHoje === dia) return;
+    localStorage.setItem('mc-export-aviso-dia', dia);
+    mostrarConfirmacao(
+      'Há mais de ' + dias + ' dias sem exportar um backup. Quer baixar o JSON agora? Seus dados ficam só neste aparelho.',
+      function() { exportarDados(); }
+    );
+  } catch (e) {}
 }
 
 

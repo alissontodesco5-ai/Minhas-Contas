@@ -20,11 +20,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Contas">
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=21">
-<link rel="icon" href="icons/icon-192.png?v=21">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=22">
+<link rel="icon" href="icons/icon-192.png?v=22">
 <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
@@ -43,6 +40,7 @@
 </header>
 
 <div id="viewContas" class="view container">
+  <p class="view-hint">Recorrentes e parceladas. Luz, água e cartões ficam em <strong>Variáveis</strong>.</p>
   <div class="toolbar">
     <input type="search" id="filtroContas" placeholder="Buscar conta…" oninput="renderContas()">
     <select id="filtroCategoria" onchange="renderContas()">
@@ -88,11 +86,11 @@
 <div id="viewFixas" class="view container">
   <div class="section-card">
     <div class="toolbar" style="margin-bottom:8px;flex-wrap:wrap;gap:8px">
-      <h2 class="section-title" style="margin:0;flex:1;min-width:120px">Contas fixas</h2>
-      <button class="btn btn-secondary" type="button" onclick="abrirModalFixa(null,'variavel')">+ Conta fixa</button>
+      <h2 class="section-title" style="margin:0;flex:1;min-width:120px">Variáveis</h2>
+      <button class="btn btn-secondary" type="button" onclick="abrirModalFixa(null,'variavel')">+ Mensal</button>
       <button class="btn btn-primary" type="button" onclick="abrirModalFixa(null,'cartao')">+ Cartão</button>
     </div>
-    <p style="margin:0 0 12px;color:var(--muted);font-size:0.9rem">Use <strong>Conta fixa</strong> para luz, água, gás… e <strong>Cartão</strong> para faturas. No cartão o valor da fatura <strong>não se repete</strong> — informe mês a mês.</p>
+    <p style="margin:0 0 12px;color:var(--muted);font-size:0.9rem"><strong>Mensal</strong> (luz, água, gás…) e <strong>Cartão</strong> (fatura). No cartão o valor <strong>não se repete</strong> — informe mês a mês. Parceladas ficam em Contas.</p>
     <div class="fixa-row" style="font-size:0.75rem;color:var(--muted);font-weight:700;padding-top:0">
       <div>Conta</div>
       <div>Venc.</div>
@@ -201,18 +199,19 @@
 
   <div class="section-card">
     <h2 class="section-title">Backup</h2>
-    <p style="margin:0 0 12px;color:var(--muted);font-size:0.9rem">Exporte para transferir dados entre aparelhos. A importação substitui os dados atuais.</p>
+    <p style="margin:0 0 12px;color:var(--muted);font-size:0.9rem">Seus dados ficam só neste aparelho. Exporte com frequência para não perder tudo se limpar o navegador.</p>
     <div class="config-row">
       <button class="btn btn-primary" type="button" onclick="exportarDados()">Exportar JSON</button>
       <button class="btn btn-secondary" type="button" onclick="document.getElementById('importFile').click()">Importar JSON</button>
       <input type="file" id="importFile" accept="application/json,.json" style="display:none" onchange="importarDados(event)">
     </div>
-    <button class="btn btn-secondary" type="button" style="margin-top:10px;width:100%" onclick="carregarDadosFicticios()">Carregar dados de exemplo</button>
+    <div id="backupExportHint" style="margin-top:8px;font-size:0.85rem;color:var(--muted)"></div>
+    <button class="btn btn-secondary" type="button" style="margin-top:10px;width:100%" onclick="carregarDadosFicticios()">Carregar dados de exemplo (apaga os atuais)</button>
   </div>
 
   <div class="section-card">
     <h2 class="section-title">Notificações</h2>
-    <p style="margin:0 0 12px;color:var(--muted);font-size:0.9rem">Receba avisos no celular quando uma conta estiver perto do vencimento (até 3 dias) ou atrasada. No iPhone, o app precisa estar instalado na Tela de Início (iOS 16.4+).</p>
+    <p style="margin:0 0 12px;color:var(--muted);font-size:0.9rem">Avisos de vencimento próximo ou atrasado. Funcionam ao abrir o app (e com ele em uso). Com o app fechado, o sistema pode não disparar. No iPhone, instale na Tela de Início (iOS 16.4+).</p>
     <button class="btn btn-primary" type="button" id="btnAtivarNotif" onclick="ativarNotificacoes()" style="width:100%;margin-bottom:8px">Ativar notificações</button>
     <div id="statusNotif" style="font-size:0.85rem;color:var(--muted)"></div>
   </div>
@@ -237,25 +236,18 @@
   </button>
   <button type="button" id="navFixas" onclick="mostrarView('fixas')">
     <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14H7v-2h5v2zm5-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
-    Fixas
+    Variáveis
   </button>
   <button type="button" id="navEntradas" onclick="mostrarView('entradas')">
     <svg viewBox="0 0 24 24"><path d="M11 4h2v8.17l2.59-2.58L17 11l-5 5-5-5 1.41-1.41L11 12.17V4zM5 19h14v2H5v-2z"/></svg>
     Entradas
   </button>
-  <button type="button" id="navBtnVencimento" onclick="abrirAlertasVencimento()" style="display:none">
+  <button type="button" id="navBtnAvisos" onclick="abrirModalAvisos()" style="display:none">
     <span class="bell-wrap">
       <svg viewBox="0 0 24 24"><path d="M12 2a1 1 0 0 1 1 1v1.06A7 7 0 0 1 19 11v4l1.7 2.55a1 1 0 0 1-.83 1.45H4.13a1 1 0 0 1-.83-1.45L5 15v-4a7 7 0 0 1 6-6.94V3a1 1 0 0 1 1-1zm0 20a2.5 2.5 0 0 1-2.45-2h4.9A2.5 2.5 0 0 1 12 22z"/></svg>
       <span class="bell-dot"></span>
     </span>
-    Vencendo
-  </button>
-  <button type="button" id="navBtnAtualizacao" onclick="clicarSinoAtualizacao()" style="display:none">
-    <span class="bell-wrap">
-      <svg viewBox="0 0 24 24"><path d="M12 2a1 1 0 0 1 1 1v1.06A7 7 0 0 1 19 11v4l1.7 2.55a1 1 0 0 1-.83 1.45H4.13a1 1 0 0 1-.83-1.45L5 15v-4a7 7 0 0 1 6-6.94V3a1 1 0 0 1 1-1zm0 20a2.5 2.5 0 0 1-2.45-2h4.9A2.5 2.5 0 0 1 12 22z"/></svg>
-      <span class="bell-dot"></span>
-    </span>
-    Atualização
+    <span class="nav-avisos-label">Avisos</span>
   </button>
   <button type="button" id="navAjustes" onclick="mostrarView('ajustes')">
     <svg viewBox="0 0 24 24"><path d="M19.14 12.94a7.14 7.14 0 0 0 .06-.94 7.14 7.14 0 0 0-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.3 7.3 0 0 0-1.63-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.59.24-1.14.56-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.7 8.84a.5.5 0 0 0 .12.64l2.03 1.58c-.04.3-.06.62-.06.94s.02.64.06.94L2.82 14.5a.5.5 0 0 0-.12.64l1.92 3.32a.5.5 0 0 0 .6.22l2.39-.96c.49.38 1.04.7 1.63.94l.36 2.54a.5.5 0 0 0 .5.42h3.84a.5.5 0 0 0 .5-.42l.36-2.54c.59-.24 1.14-.56 1.63-.94l2.39.96a.5.5 0 0 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58zM12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7z"/></svg>
@@ -464,7 +456,8 @@
 
 <div class="modal-overlay" id="modalVencimentos" onclick="if(event.target===this) fecharVencimentos()">
   <div class="modal-box" style="max-width:420px">
-    <h3>Próximas do vencimento</h3>
+    <h3 id="modalAvisosTitulo">Avisos</h3>
+    <div id="avisosAtualizacaoBox" style="display:none;margin:0 0 14px;padding:12px;border-radius:12px;border:1px solid var(--border);background:var(--chip-bg)"></div>
     <p style="margin:0 0 10px;color:var(--muted);font-size:0.9rem">Contas em aberto com vencimento em até 3 dias (ou já atrasadas).</p>
     <ul class="alerta-lista" id="listaVencimentos"></ul>
     <div class="modal-actions">

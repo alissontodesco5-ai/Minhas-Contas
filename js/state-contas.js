@@ -121,9 +121,41 @@ function setPago(contaId, pago) {
     renderTudo();
     return;
   }
+  if (ehParcelada(c)) {
+    mostrarConfirmacao('Desmarcar remove o pagamento deste mês e devolve as parcelas quitadas nele. Continuar?', function() {
+      desfazerPagamentosDoMes(c);
+      marcarPagoMes(contaId, false);
+      salvar();
+      renderTudo();
+    });
+    renderContas(); // mantém check até confirmar
+    return;
+  }
   marcarPagoMes(contaId, false);
   salvar();
   renderTudo();
+}
+
+/** Desfaz lançamentos de pagamento da conta no mês atual (parcelada). */
+function desfazerPagamentosDoMes(c) {
+  if (!c || !ehParcelada(c) || !Array.isArray(c.pagamentos)) return;
+  const key = mesKeyAtual();
+  const doMes = c.pagamentos.filter(function(p) { return p.mes === key; });
+  if (!doMes.length) return;
+  let parcelas = 0;
+  let valorPago = 0;
+  doMes.forEach(function(p) {
+    parcelas += Number(p.parcelas) || 0;
+    valorPago += Number(p.valorPago) || 0;
+  });
+  c.pagamentos = c.pagamentos.filter(function(p) { return p.mes !== key; });
+  c.parcelasPagas = Math.max(0, (Number(c.parcelasPagas) || 0) - parcelas);
+  const total = Number(c.totalParcelas) || 0;
+  if (c.parcelasPagas > total) c.parcelasPagas = total;
+  const saldoAtual = (c.faltaQuitar != null && c.faltaQuitar !== '' && !isNaN(Number(c.faltaQuitar)))
+    ? Number(c.faltaQuitar)
+    : faltaParcelas(c) * (Number(c.valor) || 0);
+  c.faltaQuitar = Math.max(0, saldoAtual + valorPago);
 }
 
 function alternarCamposTipoConta() {
@@ -349,23 +381,57 @@ function contasAlertaVencimento() {
 }
 
 function atualizarSinoVencimento() {
-  const lista = contasAlertaVencimento();
-  const btn = document.getElementById('navBtnVencimento');
+  atualizarNavAvisos();
+}
+
+function atualizarNavAvisos() {
+  const btn = document.getElementById('navBtnAvisos');
   if (!btn) return;
-  if (!lista.length) {
+  const temVenc = contasAlertaVencimento().length > 0;
+  const temUpdate = !!atualizacaoDisponivel;
+  if (!temVenc && !temUpdate) {
     btn.style.display = 'none';
-    btn.classList.remove('tem-vencimento');
+    btn.classList.remove('tem-vencimento', 'tem-atualizacao');
     return;
   }
   btn.style.display = '';
-  btn.classList.add('tem-vencimento');
+  btn.classList.toggle('tem-vencimento', temVenc);
+  btn.classList.toggle('tem-atualizacao', temUpdate);
+  const label = btn.querySelector('.nav-avisos-label');
+  if (label) {
+    if (temVenc && temUpdate) label.textContent = 'Avisos';
+    else if (temUpdate) label.textContent = 'Atualizar';
+    else label.textContent = 'Vencendo';
+  }
 }
 
 function abrirAlertasVencimento() {
+  abrirModalAvisos();
+}
+
+function abrirModalAvisos() {
   const lista = contasAlertaVencimento();
   const ul = document.getElementById('listaVencimentos');
+  const updateBox = document.getElementById('avisosAtualizacaoBox');
+  const titulo = document.getElementById('modalAvisosTitulo');
+  if (titulo) titulo.textContent = 'Avisos';
+
+  if (updateBox) {
+    if (atualizacaoDisponivel) {
+      updateBox.style.display = 'block';
+      updateBox.innerHTML =
+        '<p style="margin:0 0 10px"><strong>Nova versão disponível</strong></p>' +
+        '<button class="btn btn-primary" type="button" onclick="fecharVencimentos(); clicarSinoAtualizacao()" style="width:100%">Ver novidades e atualizar</button>';
+    } else {
+      updateBox.style.display = 'none';
+      updateBox.innerHTML = '';
+    }
+  }
+
   if (!lista.length) {
-    ul.innerHTML = '<li>Nenhuma conta alerta no momento.</li>';
+    ul.innerHTML = atualizacaoDisponivel
+      ? '<li style="color:var(--muted)">Nenhuma conta perto do vencimento agora.</li>'
+      : '<li>Nenhuma conta alerta no momento.</li>';
   } else {
     ul.innerHTML = lista.map(c => {
       const d = diasAteVencimento(c);
@@ -400,6 +466,8 @@ function contasFiltradas() {
   const st = document.getElementById('filtroStatus').value;
   return state.contas
     .filter(c => {
+      // Variáveis/cartões ficam só na aba Variáveis
+      if (ehVariavel(c)) return false;
       if (!contaAtivaNoMes(c, anoAtual, mesAtual)) return false;
       if (q && !(c.descricao || '').toLowerCase().includes(q) && !(c.obs || '').toLowerCase().includes(q) && !(c.responsavel || '').toLowerCase().includes(q)) return false;
       if (cat && c.categoria !== cat) return false;
@@ -424,9 +492,9 @@ function renderContas() {
     cards.innerHTML = '';
     tbody.innerHTML = '';
     empty.style.display = 'block';
-    empty.textContent = state.contas.length
+    empty.textContent = state.contas.some(function(c) { return !ehVariavel(c); })
       ? 'Nenhuma conta neste mês (ou com esses filtros).'
-      : 'Nenhuma conta cadastrada. Toque em + Conta.';
+      : 'Nenhuma conta recorrente/parcelada. Toque em + Conta. Variáveis e cartões ficam na aba Variáveis.';
     atualizarTotais();
     atualizarSinoVencimento();
     return;
@@ -695,7 +763,7 @@ function renderFixas() {
     const valorMes = contaValorMes(c, anoAtual, mesAtual);
     const temValor = variavelTemValorNoMes(c, anoAtual, mesAtual);
     const ehCartaoTipo = ehCartao(c);
-    const tipoLabel = ehCartaoTipo ? 'Cartão' : 'Fixa';
+    const tipoLabel = ehCartaoTipo ? 'Cartão' : 'Mensal';
     const metaExtra = [];
     if (c.responsavel) metaExtra.push(esc(c.responsavel));
     if (c.categoria) metaExtra.push(esc(c.categoria));

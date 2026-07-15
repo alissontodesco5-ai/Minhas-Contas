@@ -1,10 +1,11 @@
 {
-  "versao": "v21",
-  "titulo": "Novidades da v21",
+  "versao": "v22",
+  "titulo": "Novidades da v22",
   "itens": [
-    "Código organizado em pastas css/ e js/ (mais fácil de manter)",
-    "Visual modernizado: tipografia Sora/Manrope, cards e navegação",
-    "Transições mais suaves na troca de telas e botões",
-    "Seus registros continuam salvos neste aparelho"
+    "Desmarcar pago em parcelada desfaz o pagamento do mês",
+    "Contas e Variáveis separados (sem duplicar na lista)",
+    "Um único botão de Avisos na barra (vencimento + atualização)",
+    "Lembrete para exportar backup; importação mais segura",
+    "Início sem dados de exemplo automáticos; tipografia offline"
   ]
 }

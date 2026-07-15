@@ -29,8 +29,8 @@ js/
   constants.js      # versão, chaves e constantes
   format.js         # moeda, datas e totais
   storage.js        # carregar/salvar/backup
-  ui.js             # tema, selects custom, alertas
-  state-contas.js   # contas e pagamentos
+  ui.js             # tema, selects custom, alertas, backup
+  state-contas.js   # contas, variáveis/cartões e pagamentos
   state-entradas.js # entradas
   resumo.js         # gráficos e resumo
   pwa.js            # instalação, atualização, notificações
@@ -40,3 +40,5 @@ service-worker.js
 novidades.json
 icons/
 ```
+
+**Contas** = recorrentes e parceladas. **Variáveis** = valores mensais (luz/água) e cartões.
