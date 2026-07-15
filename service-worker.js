@@ -1,4 +1,4 @@
-const CACHE_NAME = 'minhas-contas-v17';
+const CACHE_NAME = 'minhas-contas-v18';
 const ASSETS = [
   './index.html',
   './manifest.json',
@@ -6,7 +6,8 @@ const ASSETS = [
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon-512-maskable.png',
-  './icons/apple-touch-icon.png'
+  './icons/apple-touch-icon.png',
+  './icons/badge-96.png'
 ];
 
 self.addEventListener('install', (event) => {

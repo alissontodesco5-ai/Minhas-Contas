@@ -1,10 +1,9 @@
 {
-  "versao": "v17",
-  "titulo": "Novidades da v17",
+  "versao": "v18",
+  "titulo": "Novidades da v18",
   "itens": [
-    "Menus e caixas de seleção no visual do app (sem lista nativa do celular)",
-    "Calendário próprio para datas",
-    "Pop-ups com transição leve e suave",
-    "Checkboxes no estilo do sistema"
+    "Ícone do app nas notificações do celular (sem quadrado branco)",
+    "Data de recebimento nas entradas",
+    "Chips das contas em linha, expandem ao tocar no card"
   ]
 }
