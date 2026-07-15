@@ -946,7 +946,7 @@
       <button class="btn btn-secondary" type="button" onclick="abrirModalFixa(null,'variavel')">+ Conta fixa</button>
       <button class="btn btn-primary" type="button" onclick="abrirModalFixa(null,'cartao')">+ Cartão</button>
     </div>
-    <p style="margin:0 0 12px;color:var(--muted);font-size:0.9rem">Use <strong>Conta fixa</strong> para luz, água, gás… e <strong>Cartão</strong> para faturas. O valor muda todo mês e entra automaticamente em Contas.</p>
+    <p style="margin:0 0 12px;color:var(--muted);font-size:0.9rem">Use <strong>Conta fixa</strong> para luz, água, gás… e <strong>Cartão</strong> para faturas. No cartão o valor da fatura <strong>não se repete</strong> — informe mês a mês.</p>
     <div class="fixa-row" style="font-size:0.75rem;color:var(--muted);font-weight:700;padding-top:0">
       <div>Conta</div>
       <div>Venc.</div>
@@ -967,7 +967,7 @@
     <div class="entrada-row" style="font-size:0.75rem;color:var(--muted);font-weight:700;padding-top:0">
       <div>Classe</div>
       <div>Valor do mês</div>
-      <div>Recebido em</div>
+      <div>Dia</div>
       <div></div>
     </div>
     <div id="entradasList"></div>
@@ -1144,12 +1144,23 @@
         <label class="field" id="fixaNomeLabel">Nome da conta</label>
         <input type="text" id="fixaNome" placeholder="Ex: Luz, Água, Gás…">
       </div>
-      <div>
-        <label class="field">Dia de vencimento</label>
-        <input type="text" id="fixaDia" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Ex: 10" oninput="onInputInteiro(this)">
+      <div id="fixaCampoFechamento" style="display:none">
+        <label class="field">Dia de fechamento</label>
+        <input type="text" id="fixaDiaFechamento" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Ex: 5" oninput="onInputInteiro(this)">
       </div>
       <div>
-        <label class="field">Valor deste mês</label>
+        <label class="field" id="fixaDiaLabel">Dia de vencimento</label>
+        <input type="text" id="fixaDia" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Ex: 10" oninput="onInputInteiro(this)">
+      </div>
+      <div id="fixaCampoLimite" style="display:none">
+        <label class="field">Limite do cartão</label>
+        <div class="input-prefix">
+          <span>R$</span>
+          <input type="text" id="fixaLimite" inputmode="numeric" placeholder="0,00" autocomplete="off" oninput="onInputMoeda(this)">
+        </div>
+      </div>
+      <div>
+        <label class="field" id="fixaValorLabel">Valor deste mês</label>
         <div class="input-prefix">
           <span>R$</span>
           <input type="text" id="fixaValor" inputmode="numeric" placeholder="0,00" autocomplete="off" oninput="onInputMoeda(this)">
@@ -1166,6 +1177,9 @@
       <div class="full">
         <label class="field">Obs</label>
         <input type="text" id="fixaObs" placeholder="Opcional">
+      </div>
+      <div class="full" id="fixaDicaCartao" style="display:none">
+        <p style="margin:0;font-size:0.85rem;color:var(--muted)">A fatura não se copia para o mês seguinte — informe o valor em cada mês na lista.</p>
       </div>
     </div>
     <div class="modal-actions">
@@ -1290,8 +1304,9 @@
         </div>
       </div>
       <div class="full">
-        <label class="field">Data de recebimento</label>
-        <input type="date" id="eDataRecebimento">
+        <label class="field">Dia do recebimento</label>
+        <input type="text" id="eDiaRecebimento" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Ex: 20" oninput="onInputInteiro(this)">
+        <p style="margin:6px 0 0;font-size:0.8rem;color:var(--muted)">Repete todos os meses (ex.: dia 20 = todo dia 20).</p>
       </div>
     </div>
     <div class="modal-actions">
@@ -1393,7 +1408,7 @@
 
 <script>
   // Escopo global (mesmo padrão da Lista de compras) para onclick="..." funcionar
-  const APP_VERSION = 'v18'; // manter igual ao CACHE_NAME em service-worker.js (minhas-contas-v18)
+  const APP_VERSION = 'v20'; // manter igual ao CACHE_NAME em service-worker.js (minhas-contas-v20)
   const STORAGE_KEY = 'minhas-contas-v1';
   const BACKUP_KEY = 'minhas-contas-backup';
   const MIGRACAO_ENTRADAS_KEY = 'mc-migracao-entradas-v13';
@@ -1438,20 +1453,38 @@
     return mesKey(anoAtual, mesAtual);
   }
 
+  function extrairDiaDeDataISO(iso) {
+    const m = String(iso || '').match(/-(\d{1,2})$/);
+    if (!m) return null;
+    const d = Number(m[1]);
+    return (d >= 1 && d <= 31) ? d : null;
+  }
+
   function normalizarEntrada(e) {
     const valor = e.valor != null
       ? Number(e.valor) || 0
       : (Number(e.cenarioAtual) || 0);
     const valoresMes = e.valoresMes && typeof e.valoresMes === 'object' ? { ...e.valoresMes } : {};
-    const datasRecebimentoMes = e.datasRecebimentoMes && typeof e.datasRecebimentoMes === 'object'
-      ? { ...e.datasRecebimentoMes }
-      : {};
+    let diaRecebimento = e.diaRecebimento != null && e.diaRecebimento !== ''
+      ? (Number(e.diaRecebimento) || null)
+      : null;
+    if (diaRecebimento != null) {
+      diaRecebimento = Math.max(1, Math.min(31, Math.floor(diaRecebimento)));
+    }
+    // Migração: entradas antigas tinham data completa por mês
+    if (!diaRecebimento && e.datasRecebimentoMes && typeof e.datasRecebimentoMes === 'object') {
+      const vals = Object.values(e.datasRecebimentoMes);
+      for (let i = 0; i < vals.length; i++) {
+        const d = extrairDiaDeDataISO(vals[i]);
+        if (d) { diaRecebimento = d; break; }
+      }
+    }
     return {
       id: e.id || uid(),
       classe: e.classe || 'Entrada',
       valor,
       valoresMes,
-      datasRecebimentoMes
+      diaRecebimento
     };
   }
 
@@ -1473,9 +1506,6 @@
     const mesAnt2 = mes <= 1
       ? mesKey(ano - 1, mes + 10)
       : mesKey(ano, mes - 2);
-    const dia = function(d) {
-      return ano + '-' + String(mes + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
-    };
     const ids = {
       aluguel: 'demo-aluguel',
       luz: 'demo-luz',
@@ -1497,21 +1527,21 @@
           classe: 'Pagamento',
           valor: 5200,
           valoresMes: { [mesAnt2]: 5000, [mesAnt]: 5100, [ref]: 5200 },
-          datasRecebimentoMes: { [mesAnt2]: mesAnt2 + '-05', [mesAnt]: mesAnt + '-05', [ref]: dia(5) }
+          diaRecebimento: 5
         },
         {
           id: 'demo-ent-vale',
           classe: 'Vale',
           valor: 900,
           valoresMes: { [mesAnt2]: 850, [mesAnt]: 900, [ref]: 900 },
-          datasRecebimentoMes: { [mesAnt2]: mesAnt2 + '-15', [mesAnt]: mesAnt + '-15', [ref]: dia(15) }
+          diaRecebimento: 15
         },
         {
           id: 'demo-ent-va',
           classe: 'VA',
           valor: 450,
           valoresMes: { [mesAnt2]: 450, [mesAnt]: 450, [ref]: 450 },
-          datasRecebimentoMes: { [mesAnt2]: mesAnt2 + '-01', [mesAnt]: mesAnt + '-01', [ref]: dia(1) }
+          diaRecebimento: 1
         }
       ],
       contas: [
@@ -1611,6 +1641,13 @@
         if (c.tipo === 'parcelada' && !Array.isArray(c.pagamentos)) c.pagamentos = [];
         if ((c.tipo === 'cartao' || c.tipo === 'variavel') && (!c.valoresMes || typeof c.valoresMes !== 'object')) c.valoresMes = {};
         if (c.responsavel == null) c.responsavel = '';
+        if (c.tipo === 'cartao') {
+          if (c.diaFechamento != null && c.diaFechamento !== '') {
+            const df = Number(c.diaFechamento);
+            c.diaFechamento = (df >= 1 && df <= 31) ? Math.floor(df) : null;
+          } else c.diaFechamento = null;
+          c.limite = c.limite != null && c.limite !== '' ? (Number(c.limite) || 0) : null;
+        }
         delete c.prioridade;
         return c;
       });
@@ -1828,7 +1865,9 @@
   function ehVariavel(c) {
     return !!(c && (c.tipo === 'variavel' || c.tipo === 'cartao'));
   }
-  function ehCartao(c) { return ehVariavel(c); }
+  function ehCartao(c) {
+    return !!(c && c.tipo === 'cartao');
+  }
 
   function contaValorMes(c, ano, mes) {
     if (!c) return 0;
@@ -1837,6 +1876,8 @@
       if (c.valoresMes && c.valoresMes[key] != null && c.valoresMes[key] !== '') {
         return Number(c.valoresMes[key]) || 0;
       }
+      // Cartão: fatura só conta se cadastrada naquele mês (não herda o valor anterior)
+      if (ehCartao(c)) return 0;
       if (key === mesKeyAtual()) return Number(c.valor) || 0;
       return 0;
     }
@@ -1847,6 +1888,8 @@
     if (!ehVariavel(c)) return false;
     const key = mesKey(ano, mes);
     if (c.valoresMes && Object.prototype.hasOwnProperty.call(c.valoresMes, key)) return true;
+    // Conta fixa pode usar o último valor no mês atual; cartão não
+    if (ehCartao(c)) return false;
     return key === mesKeyAtual() && (Number(c.valor) || 0) > 0;
   }
 
@@ -2416,10 +2459,9 @@
     return 0;
   }
 
-  function entradaDataRecebimentoMes(e, ano, mes) {
-    const key = mesKey(ano, mes);
-    if (e.datasRecebimentoMes && e.datasRecebimentoMes[key]) return e.datasRecebimentoMes[key];
-    return '';
+  function entradaDiaRecebimento(e) {
+    const d = e && e.diaRecebimento != null ? Number(e.diaRecebimento) : NaN;
+    return (d >= 1 && d <= 31) ? d : null;
   }
 
   function despesasDoMesResumo(ano, mes) {
@@ -2547,7 +2589,10 @@
            '<div class="detail-item"><span>Total dívida</span><strong>' + formatarMoeda(totalDividaCalc(c)) + '</strong></div>' +
            '<div class="detail-item"><span>Economia acumulada</span><strong class="diff-pos">' + formatarMoeda(econ) + '</strong></div>')
         : (c.tipo === 'cartao'
-          ? '<div class="detail-item"><span>Tipo</span><strong>Cartão de crédito (fatura variável)</strong></div>'
+          ? ('<div class="detail-item"><span>Tipo</span><strong>Cartão de crédito</strong></div>' +
+             '<div class="detail-item"><span>Fechamento</span><strong>Dia ' + (c.diaFechamento || '—') + '</strong></div>' +
+             '<div class="detail-item"><span>Vencimento</span><strong>Dia ' + (c.diaVencimento || '—') + '</strong></div>' +
+             '<div class="detail-item"><span>Limite</span><strong>' + (c.limite != null ? formatarMoeda(c.limite) : '—') + '</strong></div>')
           : (variavel
             ? '<div class="detail-item"><span>Tipo</span><strong>Conta fixa (valor variável por mês)</strong></div>'
             : '<div class="detail-item"><span>Tipo</span><strong>Conta recorrente (sem parcelas)</strong></div>'));
@@ -2569,6 +2614,9 @@
               return parts.length ? '<div class="cartao-meta">' + parts.join(' · ') + '</div>' : '';
             })() +
             '<div class="conta-meta">' +
+              (c.tipo === 'cartao' && c.diaFechamento
+                ? '<span class="chip">Fecha ' + c.diaFechamento + '</span>'
+                : '') +
               '<span class="chip">Dia ' + (c.diaVencimento || '—') + '</span>' +
               '<span class="chip ' + chipCategoriaClass(c.categoria) + '">' + esc(c.categoria || '—') + '</span>' +
               (c.responsavel ? '<span class="chip">' + esc(c.responsavel) + '</span>' : '') +
@@ -2775,15 +2823,20 @@
     list.innerHTML = fixas.map(function(c) {
       const valorMes = contaValorMes(c, anoAtual, mesAtual);
       const temValor = variavelTemValorNoMes(c, anoAtual, mesAtual);
-      const tipoLabel = c.tipo === 'cartao' ? 'Cartão' : 'Fixa';
+      const ehCartaoTipo = ehCartao(c);
+      const tipoLabel = ehCartaoTipo ? 'Cartão' : 'Fixa';
+      const metaExtra = [];
+      if (c.responsavel) metaExtra.push(esc(c.responsavel));
+      if (c.categoria) metaExtra.push(esc(c.categoria));
+      if (ehCartaoTipo && c.diaFechamento) metaExtra.push('fecha dia ' + c.diaFechamento);
+      if (ehCartaoTipo && c.limite != null) metaExtra.push('limite ' + formatarMoeda(c.limite));
+      if (!temValor) metaExtra.push(ehCartaoTipo ? 'sem fatura neste mês' : 'sem valor neste mês');
       return '<div class="fixa-row">' +
         '<div>' +
           '<div class="fixa-nome">' + esc(c.descricao || 'Conta') + '</div>' +
           '<div class="fixa-meta">' +
             tipoLabel +
-            (c.responsavel ? ' · ' + esc(c.responsavel) : '') +
-            (c.categoria ? ' · ' + esc(c.categoria) : '') +
-            (!temValor ? ' · sem valor neste mês' : '') +
+            (metaExtra.length ? ' · ' + metaExtra.join(' · ') : '') +
           '</div>' +
         '</div>' +
         '<div>Dia ' + (c.diaVencimento || '—') + '</div>' +
@@ -2806,9 +2859,10 @@
     const c = state.contas.find(function(x) { return x.id === id; });
     if (!c || !ehVariavel(c)) return;
     const n = parseMoeda(valor);
-    c.valor = n;
+    const key = mesKeyAtual();
     if (!c.valoresMes) c.valoresMes = {};
-    c.valoresMes[mesKeyAtual()] = n;
+    c.valoresMes[key] = n;
+    c.valor = n;
     salvar();
     renderFixas();
     atualizarTotais();
@@ -2821,6 +2875,13 @@
       return '<option value="' + esc(c) + '"' + (c === preferido ? ' selected' : '') + '>' + esc(c) + '</option>';
     }).join('');
     sincronizarTodosSelects();
+  }
+
+  function alternarCamposModalFixa(ehCartaoTipo) {
+    document.getElementById('fixaCampoFechamento').style.display = ehCartaoTipo ? '' : 'none';
+    document.getElementById('fixaCampoLimite').style.display = ehCartaoTipo ? '' : 'none';
+    document.getElementById('fixaDicaCartao').style.display = ehCartaoTipo ? '' : 'none';
+    document.getElementById('fixaValorLabel').textContent = ehCartaoTipo ? 'Fatura deste mês' : 'Valor deste mês';
   }
 
   function abrirModalFixa(id, tipoNovo) {
@@ -2846,10 +2907,13 @@
       ? 'Ex: Nubank, Inter, Itaú…'
       : 'Ex: Luz, Água, Gás…';
     document.getElementById('fixaId').value = id || '';
+    alternarCamposModalFixa(ehCartaoTipo);
 
     if (c) {
       document.getElementById('fixaNome').value = c.descricao || '';
       document.getElementById('fixaDia').value = c.diaVencimento || '';
+      document.getElementById('fixaDiaFechamento').value = c.diaFechamento || '';
+      setMoedaInput('fixaLimite', c.limite != null ? c.limite : 0);
       setMoedaInput('fixaValor', contaValorMes(c, anoAtual, mesAtual));
       document.getElementById('fixaResponsavel').value = c.responsavel || '';
       document.getElementById('fixaCategoria').value = c.categoria || catPadrao;
@@ -2857,6 +2921,8 @@
     } else {
       document.getElementById('fixaNome').value = '';
       document.getElementById('fixaDia').value = '';
+      document.getElementById('fixaDiaFechamento').value = '';
+      setMoedaInput('fixaLimite', 0);
       setMoedaInput('fixaValor', 0);
       document.getElementById('fixaResponsavel').value = '';
       document.getElementById('fixaCategoria').value = catPadrao || '';
@@ -2878,9 +2944,23 @@
       return;
     }
     const dia = getInteiroInput('fixaDia', 0) || null;
-    if (!dia) {
-      mostrarAlerta('Informe o dia de vencimento.');
+    if (!dia || dia < 1 || dia > 31) {
+      mostrarAlerta('Informe o dia de vencimento (1–31).');
       return;
+    }
+    let diaFechamento = null;
+    let limite = null;
+    if (tipo === 'cartao') {
+      diaFechamento = getInteiroInput('fixaDiaFechamento', 0) || null;
+      if (!diaFechamento || diaFechamento < 1 || diaFechamento > 31) {
+        mostrarAlerta('Informe o dia de fechamento (1–31).');
+        return;
+      }
+      limite = getMoedaInput('fixaLimite');
+      if (limite < 0) {
+        mostrarAlerta('Informe um limite válido.');
+        return;
+      }
     }
     const valorMes = getMoedaInput('fixaValor');
     const id = document.getElementById('fixaId').value;
@@ -2890,6 +2970,8 @@
       tipo: tipo,
       descricao: nome,
       diaVencimento: dia,
+      diaFechamento: tipo === 'cartao' ? diaFechamento : null,
+      limite: tipo === 'cartao' ? limite : null,
       valor: valorMes,
       responsavel: document.getElementById('fixaResponsavel').value.trim(),
       categoria: document.getElementById('fixaCategoria').value || catPadrao,
@@ -2905,13 +2987,23 @@
       if (i >= 0) {
         const prev = state.contas[i];
         const valoresMes = (prev.valoresMes && typeof prev.valoresMes === 'object') ? { ...prev.valoresMes } : {};
-        valoresMes[key] = valorMes;
+        // Cartão: só grava fatura do mês se > 0 ou se já existia valor nesse mês
+        if (tipo === 'cartao') {
+          if (valorMes > 0 || Object.prototype.hasOwnProperty.call(valoresMes, key)) {
+            valoresMes[key] = valorMes;
+          }
+        } else {
+          valoresMes[key] = valorMes;
+        }
         state.contas[i] = Object.assign({}, prev, dados, { valoresMes: valoresMes });
         delete state.contas[i].pagamentos;
       }
     } else {
       const valoresMes = {};
-      valoresMes[key] = valorMes;
+      // Cartão novo com fatura R$ 0: não marca o mês (evita herdar/aparecer sem fatura)
+      if (tipo !== 'cartao' || valorMes > 0) {
+        valoresMes[key] = valorMes;
+      }
       state.contas.push(Object.assign({ id: uid(), valoresMes: valoresMes }, dados));
     }
     salvar();
@@ -2932,7 +3024,7 @@
     empty.style.display = 'none';
     list.innerHTML = state.entradas.map(e => {
       const val = entradaValorMes(e, anoAtual, mesAtual);
-      const dataRec = entradaDataRecebimentoMes(e, anoAtual, mesAtual);
+      const diaRec = entradaDiaRecebimento(e);
       return `<div class="entrada-row">
         <div><span class="chip chip-entrada">${esc(e.classe)}</span></div>
         <div>
@@ -2941,7 +3033,7 @@
             <input type="text" inputmode="numeric" value="${formatarMoedaInput(val)}" oninput="onInputMoeda(this)" onchange="atualizarValorEntrada('${e.id}', this.value)" aria-label="Valor" autocomplete="off">
           </div>
         </div>
-        <div class="entrada-data">${dataRec ? formatarDataBR(dataRec) : '—'}</div>
+        <div class="entrada-data">${diaRec != null ? 'Dia ' + diaRec : '—'}</div>
         <div class="conta-actions">
           <button class="btn btn-secondary btn-icon" type="button" onclick="abrirModalEntrada('${e.id}')" aria-label="Editar">✎</button>
           <button class="btn btn-danger btn-icon" type="button" onclick="excluirEntrada('${e.id}')" aria-label="Excluir">✕</button>
@@ -2971,11 +3063,11 @@
       if (!e) return;
       document.getElementById('eClasse').value = e.classe || '';
       setMoedaInput('eValor', entradaValorMes(e, anoAtual, mesAtual));
-      document.getElementById('eDataRecebimento').value = entradaDataRecebimentoMes(e, anoAtual, mesAtual) || '';
+      document.getElementById('eDiaRecebimento').value = entradaDiaRecebimento(e) || '';
     } else {
       document.getElementById('eClasse').value = '';
       setMoedaInput('eValor', 0);
-      document.getElementById('eDataRecebimento').value = hojeISO();
+      document.getElementById('eDiaRecebimento').value = '';
     }
     sincronizarTodosSelects();
     document.getElementById('modalEntrada').classList.add('open');
@@ -2993,25 +3085,28 @@
     }
     const id = document.getElementById('entradaId').value;
     const valor = getMoedaInput('eValor');
-    const dataRecebimento = document.getElementById('eDataRecebimento').value || '';
+    let diaRecebimento = getInteiroInput('eDiaRecebimento', 0) || null;
+    if (diaRecebimento != null) {
+      if (diaRecebimento < 1 || diaRecebimento > 31) {
+        mostrarAlerta('Informe um dia entre 1 e 31.');
+        return;
+      }
+    }
     const key = mesKeyAtual();
     if (id) {
       const i = state.entradas.findIndex(e => e.id === id);
       if (i >= 0) {
         state.entradas[i].classe = classe;
         state.entradas[i].valor = valor;
+        state.entradas[i].diaRecebimento = diaRecebimento;
         if (!state.entradas[i].valoresMes) state.entradas[i].valoresMes = {};
         state.entradas[i].valoresMes[key] = valor;
-        if (!state.entradas[i].datasRecebimentoMes) state.entradas[i].datasRecebimentoMes = {};
-        if (dataRecebimento) state.entradas[i].datasRecebimentoMes[key] = dataRecebimento;
-        else delete state.entradas[i].datasRecebimentoMes[key];
+        delete state.entradas[i].datasRecebimentoMes;
       }
     } else {
       const valoresMes = {};
       valoresMes[key] = valor;
-      const datasRecebimentoMes = {};
-      if (dataRecebimento) datasRecebimentoMes[key] = dataRecebimento;
-      state.entradas.push({ id: uid(), classe, valor, valoresMes, datasRecebimentoMes });
+      state.entradas.push({ id: uid(), classe, valor, valoresMes, diaRecebimento });
     }
     salvar();
     fecharModalEntrada();
