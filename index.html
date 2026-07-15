@@ -409,8 +409,8 @@
   .chip-entrada { background: rgba(22,163,74,0.15); color: var(--tipo-entrada); border-color: var(--tipo-entrada); }
   .chip-saida { background: rgba(239,68,68,0.15); color: var(--tipo-saida); border-color: var(--tipo-saida); }
   .chip-saldo { background: rgba(161,98,7,0.15); color: var(--tipo-saldo); border-color: var(--tipo-saldo); }
-  .chip-cartao { background: rgba(99,102,241,0.18); color: #818cf8; border-color: #6366f1; }
-  .cartao-row {
+  .chip-fixa, .chip-cartao { background: rgba(99,102,241,0.18); color: #818cf8; border-color: #6366f1; }
+  .fixa-row, .cartao-row {
     display: grid;
     grid-template-columns: 1.2fr 0.7fr 1fr auto;
     gap: 8px;
@@ -418,9 +418,9 @@
     padding: 12px 0;
     border-bottom: 1px solid var(--border);
   }
-  .cartao-row:last-child { border-bottom: none; }
-  .cartao-nome { font-weight: 700; }
-  .cartao-meta { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
+  .fixa-row:last-child, .cartao-row:last-child { border-bottom: none; }
+  .fixa-nome, .cartao-nome { font-weight: 700; }
+  .fixa-meta, .cartao-meta { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
   .conta-actions { display: flex; gap: 4px; }
   .conta-details {
     display: none;
@@ -939,21 +939,22 @@
   <div class="empty" id="contasEmpty" style="display:none">Nenhuma conta cadastrada. Toque em + Conta.</div>
 </div>
 
-<div id="viewCartoes" class="view container">
+<div id="viewFixas" class="view container">
   <div class="section-card">
-    <div class="toolbar" style="margin-bottom:8px">
-      <h2 class="section-title" style="margin:0;flex:1">Cartões de crédito</h2>
-      <button class="btn btn-primary" type="button" onclick="abrirModalCartao()">+ Cartão</button>
+    <div class="toolbar" style="margin-bottom:8px;flex-wrap:wrap;gap:8px">
+      <h2 class="section-title" style="margin:0;flex:1;min-width:120px">Contas fixas</h2>
+      <button class="btn btn-secondary" type="button" onclick="abrirModalFixa(null,'variavel')">+ Conta fixa</button>
+      <button class="btn btn-primary" type="button" onclick="abrirModalFixa(null,'cartao')">+ Cartão</button>
     </div>
-    <p style="margin:0 0 12px;color:var(--muted);font-size:0.9rem">Informe o valor da fatura do mês. O cartão entra automaticamente em Contas com o vencimento escolhido.</p>
-    <div class="cartao-row" style="font-size:0.75rem;color:var(--muted);font-weight:700;padding-top:0">
-      <div>Cartão</div>
+    <p style="margin:0 0 12px;color:var(--muted);font-size:0.9rem">Use <strong>Conta fixa</strong> para luz, água, gás… e <strong>Cartão</strong> para faturas. O valor muda todo mês e entra automaticamente em Contas.</p>
+    <div class="fixa-row" style="font-size:0.75rem;color:var(--muted);font-weight:700;padding-top:0">
+      <div>Conta</div>
       <div>Venc.</div>
-      <div>Fatura do mês</div>
+      <div>Valor do mês</div>
       <div></div>
     </div>
-    <div id="cartoesList"></div>
-    <div class="empty" id="cartoesEmpty" style="display:none">Nenhum cartão. Adicione Nubank, Inter, Itaú…</div>
+    <div id="fixasList"></div>
+    <div class="empty" id="fixasEmpty" style="display:none">Nenhuma conta. Adicione conta fixa ou cartão de crédito.</div>
   </div>
 </div>
 
@@ -1088,9 +1089,9 @@
     <svg viewBox="0 0 24 24"><path d="M3 5h18v2H3V5zm0 6h18v2H3v-2zm0 6h18v2H3v-2z"/></svg>
     Contas
   </button>
-  <button type="button" id="navCartoes" onclick="mostrarView('cartoes')">
-    <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 2v2H4V6h16zM4 18v-6h16v6H4z"/></svg>
-    Cartões
+  <button type="button" id="navFixas" onclick="mostrarView('fixas')">
+    <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14H7v-2h5v2zm5-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+    Fixas
   </button>
   <button type="button" id="navEntradas" onclick="mostrarView('entradas')">
     <svg viewBox="0 0 24 24"><path d="M11 4h2v8.17l2.59-2.58L17 11l-5 5-5-5 1.41-1.41L11 12.17V4zM5 19h14v2H5v-2z"/></svg>
@@ -1133,42 +1134,43 @@
   </div>
 </footer>
 
-<div class="modal-overlay" id="modalCartao" onclick="if(event.target===this) fecharModalCartao()">
+<div class="modal-overlay" id="modalFixa" onclick="if(event.target===this) fecharModalFixa()">
   <div class="modal-box">
-    <h3 id="modalCartaoTitulo">Novo cartão</h3>
-    <input type="hidden" id="cartaoId">
+    <h3 id="modalFixaTitulo">Nova conta fixa</h3>
+    <input type="hidden" id="fixaId">
+    <input type="hidden" id="fixaTipo" value="variavel">
     <div class="form-grid">
       <div class="full">
-        <label class="field">Nome do cartão</label>
-        <input type="text" id="cartNome" placeholder="Ex: Nubank, Inter, Itaú…">
+        <label class="field" id="fixaNomeLabel">Nome da conta</label>
+        <input type="text" id="fixaNome" placeholder="Ex: Luz, Água, Gás…">
       </div>
       <div>
         <label class="field">Dia de vencimento</label>
-        <input type="text" id="cartDia" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Ex: 10" oninput="onInputInteiro(this)">
+        <input type="text" id="fixaDia" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Ex: 10" oninput="onInputInteiro(this)">
       </div>
       <div>
-        <label class="field">Fatura deste mês</label>
+        <label class="field">Valor deste mês</label>
         <div class="input-prefix">
           <span>R$</span>
-          <input type="text" id="cartFatura" inputmode="numeric" placeholder="0,00" autocomplete="off" oninput="onInputMoeda(this)">
+          <input type="text" id="fixaValor" inputmode="numeric" placeholder="0,00" autocomplete="off" oninput="onInputMoeda(this)">
         </div>
       </div>
       <div>
         <label class="field">Responsável</label>
-        <input type="text" id="cartResponsavel" placeholder="Opcional">
+        <input type="text" id="fixaResponsavel" placeholder="Opcional">
       </div>
       <div>
         <label class="field">Categoria</label>
-        <select id="cartCategoria"></select>
+        <select id="fixaCategoria"></select>
       </div>
       <div class="full">
         <label class="field">Obs</label>
-        <input type="text" id="cartObs" placeholder="Opcional">
+        <input type="text" id="fixaObs" placeholder="Opcional">
       </div>
     </div>
     <div class="modal-actions">
-      <button class="btn btn-secondary" type="button" onclick="fecharModalCartao()">Cancelar</button>
-      <button class="btn btn-primary" type="button" onclick="salvarCartao()">Salvar</button>
+      <button class="btn btn-secondary" type="button" onclick="fecharModalFixa()">Cancelar</button>
+      <button class="btn btn-primary" type="button" onclick="salvarFixa()">Salvar</button>
     </div>
   </div>
 </div>
@@ -1607,7 +1609,7 @@
           c.tipo = (Number(c.totalParcelas) || 0) > 0 ? 'parcelada' : 'recorrente';
         }
         if (c.tipo === 'parcelada' && !Array.isArray(c.pagamentos)) c.pagamentos = [];
-        if (c.tipo === 'cartao' && (!c.valoresMes || typeof c.valoresMes !== 'object')) c.valoresMes = {};
+        if ((c.tipo === 'cartao' || c.tipo === 'variavel') && (!c.valoresMes || typeof c.valoresMes !== 'object')) c.valoresMes = {};
         if (c.responsavel == null) c.responsavel = '';
         delete c.prioridade;
         return c;
@@ -1819,17 +1821,18 @@
   function ehParcelada(c) {
     if (!c) return false;
     if (c.tipo === 'parcelada') return true;
-    if (c.tipo === 'recorrente' || c.tipo === 'cartao') return false;
+    if (c.tipo === 'recorrente' || c.tipo === 'cartao' || c.tipo === 'variavel') return false;
     return (Number(c.totalParcelas) || 0) > 0;
   }
 
-  function ehCartao(c) {
-    return !!(c && c.tipo === 'cartao');
+  function ehVariavel(c) {
+    return !!(c && (c.tipo === 'variavel' || c.tipo === 'cartao'));
   }
+  function ehCartao(c) { return ehVariavel(c); }
 
   function contaValorMes(c, ano, mes) {
     if (!c) return 0;
-    if (ehCartao(c)) {
+    if (ehVariavel(c)) {
       const key = mesKey(ano, mes);
       if (c.valoresMes && c.valoresMes[key] != null && c.valoresMes[key] !== '') {
         return Number(c.valoresMes[key]) || 0;
@@ -1840,8 +1843,8 @@
     return Number(c.valor) || 0;
   }
 
-  function cartaoTemFaturaNoMes(c, ano, mes) {
-    if (!ehCartao(c)) return false;
+  function variavelTemValorNoMes(c, ano, mes) {
+    if (!ehVariavel(c)) return false;
     const key = mesKey(ano, mes);
     if (c.valoresMes && Object.prototype.hasOwnProperty.call(c.valoresMes, key)) return true;
     return key === mesKeyAtual() && (Number(c.valor) || 0) > 0;
@@ -1895,7 +1898,7 @@
    */
   function contaAtivaNoMes(c, ano, mes) {
     if (!c) return false;
-    if (ehCartao(c)) return cartaoTemFaturaNoMes(c, ano, mes);
+    if (ehVariavel(c)) return variavelTemValorNoMes(c, ano, mes);
     if (!ehParcelada(c)) return true;
     const total = Math.max(1, Number(c.totalParcelas) || 1);
     const ini = mesDeDataISO(c.dataInicio);
@@ -2429,17 +2432,17 @@
 
   function mostrarView(nome) {
     viewAtual = nome;
-    ['contas', 'cartoes', 'entradas', 'resumo', 'ajustes'].forEach(function(v) {
+    ['contas', 'fixas', 'entradas', 'resumo', 'ajustes'].forEach(function(v) {
       document.getElementById('view' + v.charAt(0).toUpperCase() + v.slice(1)).classList.toggle('active', v === nome);
       document.getElementById('nav' + v.charAt(0).toUpperCase() + v.slice(1)).classList.toggle('active', v === nome);
     });
-    const titles = { contas: 'Contas', cartoes: 'Cartões', entradas: 'Entradas', resumo: 'Resumo', ajustes: 'Ajustes' };
+    const titles = { contas: 'Contas', fixas: 'Contas fixas', entradas: 'Entradas', resumo: 'Resumo', ajustes: 'Ajustes' };
     document.getElementById('headerTitle').textContent = titles[nome] || 'Minhas Contas';
     document.getElementById('mesNav').style.display = (nome === 'ajustes') ? 'none' : 'flex';
     document.getElementById('totalsBar').hidden = (nome === 'ajustes');
     if (nome === 'resumo') { anoResumo = anoAtual; renderResumo(); }
     if (nome === 'entradas') renderEntradas();
-    if (nome === 'cartoes') renderCartoes();
+    if (nome === 'fixas') renderFixas();
     if (nome === 'ajustes') {
       renderAjustes();
       atualizarStatusNotificacoes();
@@ -2521,7 +2524,7 @@
       const pago = isPago(c.id);
       const alerta = estaPertoVencimento(c);
       const parcelada = ehParcelada(c);
-      const cartao = ehCartao(c);
+      const variavel = ehVariavel(c);
       const valMes = contaValorMes(c, anoAtual, mesAtual);
       const pctContas = totalDesp ? valMes / totalDesp : 0;
       const pctEnt = totalEnt ? valMes / totalEnt : 0;
@@ -2529,11 +2532,13 @@
       const chipAlerta = alerta
         ? '<span class="chip chip-alerta">' + (d < 0 ? 'Atrasada' : (d === 0 ? 'Vence hoje' : d + ' dia(s)')) + '</span>'
         : '';
-      const chipTipo = cartao
+      const chipTipo = c.tipo === 'cartao'
         ? '<span class="chip chip-cartao">Cartão</span>'
-        : (parcelada
-          ? '<span class="chip chip-dividas">Parcelada</span>'
-          : '<span class="chip">Recorrente</span>');
+        : (variavel
+          ? '<span class="chip chip-fixa">Fixa</span>'
+          : (parcelada
+            ? '<span class="chip chip-dividas">Parcelada</span>'
+            : '<span class="chip">Recorrente</span>'));
       const econ = economiaTotal(c);
       const detalhes = parcelada
         ? ('<div class="detail-item"><span>Início</span><strong>' + formatarDataBR(c.dataInicio) + '</strong></div>' +
@@ -2541,14 +2546,16 @@
            '<div class="detail-item"><span>Falta quitar</span><strong>' + formatarMoeda(faltaQuitarCalc(c)) + '</strong></div>' +
            '<div class="detail-item"><span>Total dívida</span><strong>' + formatarMoeda(totalDividaCalc(c)) + '</strong></div>' +
            '<div class="detail-item"><span>Economia acumulada</span><strong class="diff-pos">' + formatarMoeda(econ) + '</strong></div>')
-        : (cartao
+        : (c.tipo === 'cartao'
           ? '<div class="detail-item"><span>Tipo</span><strong>Cartão de crédito (fatura variável)</strong></div>'
-          : '<div class="detail-item"><span>Tipo</span><strong>Conta recorrente (sem parcelas)</strong></div>');
+          : (variavel
+            ? '<div class="detail-item"><span>Tipo</span><strong>Conta fixa (valor variável por mês)</strong></div>'
+            : '<div class="detail-item"><span>Tipo</span><strong>Conta recorrente (sem parcelas)</strong></div>'));
       const btnAmort = parcelada
         ? '<button class="btn btn-secondary btn-icon" type="button" onclick="abrirModalPagamento(\'' + c.id + '\',\'amortizacao\')" aria-label="Amortizar" title="Amortizar">$</button>'
         : '';
-      const btnEditar = cartao
-        ? '<button class="btn btn-secondary btn-icon" type="button" onclick="abrirModalCartao(\'' + c.id + '\')" aria-label="Editar">✎</button>'
+      const btnEditar = variavel
+        ? '<button class="btn btn-secondary btn-icon" type="button" onclick="abrirModalFixa(\'' + c.id + '\')" aria-label="Editar">✎</button>'
         : '<button class="btn btn-secondary btn-icon" type="button" onclick="abrirModalConta(\'' + c.id + '\')" aria-label="Editar">✎</button>';
       return '<article class="conta-card ' + (pago ? 'pago' : '') + ' ' + (alerta ? 'alerta-vencimento' : '') + '" id="card-' + c.id + '">' +
         '<div class="conta-card-top">' +
@@ -2588,15 +2595,15 @@
       const pago = isPago(c.id);
       const alerta = estaPertoVencimento(c);
       const parcelada = ehParcelada(c);
-      const cartao = ehCartao(c);
+      const variavel = ehVariavel(c);
       const valMes = contaValorMes(c, anoAtual, mesAtual);
       const pctContas = totalDesp ? valMes / totalDesp : 0;
       const pctEnt = totalEnt ? valMes / totalEnt : 0;
       const btnAmort = parcelada
         ? '<button class="btn btn-secondary btn-icon" type="button" onclick="abrirModalPagamento(\'' + c.id + '\',\'amortizacao\')" title="Amortizar">$</button>'
         : '';
-      const btnEditar = cartao
-        ? '<button class="btn btn-secondary btn-icon" type="button" onclick="abrirModalCartao(\'' + c.id + '\')">✎</button>'
+      const btnEditar = variavel
+        ? '<button class="btn btn-secondary btn-icon" type="button" onclick="abrirModalFixa(\'' + c.id + '\')">✎</button>'
         : '<button class="btn btn-secondary btn-icon" type="button" onclick="abrirModalConta(\'' + c.id + '\')">✎</button>';
       return '<tr class="' + (pago ? 'pago' : '') + ' ' + (alerta ? 'alerta-vencimento' : '') + '">' +
         '<td class="center"><input type="checkbox" class="check-pago" ' + (pago ? 'checked' : '') + ' onchange="setPago(\'' + c.id + '\', this.checked)"></td>' +
@@ -2639,8 +2646,8 @@
   function abrirModalConta(id) {
     if (id) {
       const existente = state.contas.find(function(x) { return x.id === id; });
-      if (existente && ehCartao(existente)) {
-        abrirModalCartao(id);
+      if (existente && ehVariavel(existente)) {
+        abrirModalFixa(id);
         return;
       }
     }
@@ -2744,49 +2751,50 @@
       });
       salvar();
       renderContas();
-      if (viewAtual === 'cartoes') renderCartoes();
+      if (viewAtual === 'fixas') renderFixas();
     });
   }
 
-  function listaCartoes() {
-    return state.contas.filter(ehCartao).sort(function(a, b) {
+  function listaFixas() {
+    return state.contas.filter(ehVariavel).sort(function(a, b) {
       return (Number(a.diaVencimento) || 99) - (Number(b.diaVencimento) || 99);
     });
   }
 
-  function renderCartoes() {
-    const list = document.getElementById('cartoesList');
-    const empty = document.getElementById('cartoesEmpty');
-    const cartoes = listaCartoes();
-    if (!cartoes.length) {
+  function renderFixas() {
+    const list = document.getElementById('fixasList');
+    const empty = document.getElementById('fixasEmpty');
+    const fixas = listaFixas();
+    if (!fixas.length) {
       list.innerHTML = '';
       empty.style.display = 'block';
       atualizarTotais();
       return;
     }
     empty.style.display = 'none';
-    list.innerHTML = cartoes.map(function(c) {
-      const fatura = contaValorMes(c, anoAtual, mesAtual);
-      const temFatura = cartaoTemFaturaNoMes(c, anoAtual, mesAtual);
-      return '<div class="cartao-row">' +
+    list.innerHTML = fixas.map(function(c) {
+      const valorMes = contaValorMes(c, anoAtual, mesAtual);
+      const temValor = variavelTemValorNoMes(c, anoAtual, mesAtual);
+      const tipoLabel = c.tipo === 'cartao' ? 'Cartão' : 'Fixa';
+      return '<div class="fixa-row">' +
         '<div>' +
-          '<div class="cartao-nome">' + esc(c.descricao || 'Cartão') + '</div>' +
-          '<div class="cartao-meta">' +
-            esc(c.responsavel || '') +
-            (c.responsavel && c.categoria ? ' · ' : '') +
-            esc(c.categoria || '') +
-            (!temFatura ? ' · sem fatura neste mês' : '') +
+          '<div class="fixa-nome">' + esc(c.descricao || 'Conta') + '</div>' +
+          '<div class="fixa-meta">' +
+            tipoLabel +
+            (c.responsavel ? ' · ' + esc(c.responsavel) : '') +
+            (c.categoria ? ' · ' + esc(c.categoria) : '') +
+            (!temValor ? ' · sem valor neste mês' : '') +
           '</div>' +
         '</div>' +
         '<div>Dia ' + (c.diaVencimento || '—') + '</div>' +
         '<div>' +
           '<div class="input-prefix">' +
             '<span>R$</span>' +
-            '<input type="text" inputmode="numeric" value="' + formatarMoedaInput(fatura) + '" oninput="onInputMoeda(this)" onchange="atualizarFaturaCartao(\'' + c.id + '\', this.value)" aria-label="Fatura" autocomplete="off">' +
+            '<input type="text" inputmode="numeric" value="' + formatarMoedaInput(valorMes) + '" oninput="onInputMoeda(this)" onchange="atualizarValorFixa(\'' + c.id + '\', this.value)" aria-label="Valor do mês" autocomplete="off">' +
           '</div>' +
         '</div>' +
         '<div class="conta-actions">' +
-          '<button class="btn btn-secondary btn-icon" type="button" onclick="abrirModalCartao(\'' + c.id + '\')" aria-label="Editar">✎</button>' +
+          '<button class="btn btn-secondary btn-icon" type="button" onclick="abrirModalFixa(\'' + c.id + '\')" aria-label="Editar">✎</button>' +
           '<button class="btn btn-danger btn-icon" type="button" onclick="excluirConta(\'' + c.id + '\')" aria-label="Excluir">✕</button>' +
         '</div>' +
       '</div>';
@@ -2794,79 +2802,98 @@
     atualizarTotais();
   }
 
-  function atualizarFaturaCartao(id, valor) {
+  function atualizarValorFixa(id, valor) {
     const c = state.contas.find(function(x) { return x.id === id; });
-    if (!c || !ehCartao(c)) return;
+    if (!c || !ehVariavel(c)) return;
     const n = parseMoeda(valor);
     c.valor = n;
     if (!c.valoresMes) c.valoresMes = {};
     c.valoresMes[mesKeyAtual()] = n;
     salvar();
-    renderCartoes();
+    renderFixas();
     atualizarTotais();
   }
 
-  function preencherSelectCategoriasCartao(selected) {
-    const sel = document.getElementById('cartCategoria');
-    const preferido = selected || (state.categorias.indexOf('Dívidas') >= 0 ? 'Dívidas' : state.categorias[0]);
+  function preencherSelectCategoriasFixa(selected) {
+    const sel = document.getElementById('fixaCategoria');
+    const preferido = selected || state.categorias[0];
     sel.innerHTML = state.categorias.map(function(c) {
       return '<option value="' + esc(c) + '"' + (c === preferido ? ' selected' : '') + '>' + esc(c) + '</option>';
     }).join('');
     sincronizarTodosSelects();
   }
 
-  function abrirModalCartao(id) {
-    preencherSelectCategoriasCartao();
-    document.getElementById('modalCartaoTitulo').textContent = id ? 'Editar cartão' : 'Novo cartão';
-    document.getElementById('cartaoId').value = id || '';
-    if (id) {
-      const c = state.contas.find(function(x) { return x.id === id; });
-      if (!c || !ehCartao(c)) return;
-      document.getElementById('cartNome').value = c.descricao || '';
-      document.getElementById('cartDia').value = c.diaVencimento || '';
-      setMoedaInput('cartFatura', contaValorMes(c, anoAtual, mesAtual));
-      document.getElementById('cartResponsavel').value = c.responsavel || '';
-      document.getElementById('cartCategoria').value = c.categoria || 'Dívidas';
-      document.getElementById('cartObs').value = c.obs || '';
+  function abrirModalFixa(id, tipoNovo) {
+    const isEdit = !!id;
+    let c = null;
+    if (isEdit) {
+      c = state.contas.find(function(x) { return x.id === id; });
+      if (!c || !ehVariavel(c)) return;
+    }
+    const tipo = (c && c.tipo) || (tipoNovo === 'cartao' ? 'cartao' : 'variavel');
+    const ehCartaoTipo = tipo === 'cartao';
+    const catPadrao = ehCartaoTipo
+      ? (state.categorias.indexOf('Dívidas') >= 0 ? 'Dívidas' : state.categorias[0])
+      : (state.categorias.indexOf('Moradia') >= 0 ? 'Moradia' : state.categorias[0]);
+
+    preencherSelectCategoriasFixa(c ? c.categoria : catPadrao);
+    document.getElementById('fixaTipo').value = tipo;
+    document.getElementById('modalFixaTitulo').textContent = isEdit
+      ? (ehCartaoTipo ? 'Editar cartão' : 'Editar conta fixa')
+      : (ehCartaoTipo ? 'Novo cartão' : 'Nova conta fixa');
+    document.getElementById('fixaNomeLabel').textContent = ehCartaoTipo ? 'Nome do cartão' : 'Nome da conta';
+    document.getElementById('fixaNome').placeholder = ehCartaoTipo
+      ? 'Ex: Nubank, Inter, Itaú…'
+      : 'Ex: Luz, Água, Gás…';
+    document.getElementById('fixaId').value = id || '';
+
+    if (c) {
+      document.getElementById('fixaNome').value = c.descricao || '';
+      document.getElementById('fixaDia').value = c.diaVencimento || '';
+      setMoedaInput('fixaValor', contaValorMes(c, anoAtual, mesAtual));
+      document.getElementById('fixaResponsavel').value = c.responsavel || '';
+      document.getElementById('fixaCategoria').value = c.categoria || catPadrao;
+      document.getElementById('fixaObs').value = c.obs || '';
     } else {
-      document.getElementById('cartNome').value = '';
-      document.getElementById('cartDia').value = '';
-      setMoedaInput('cartFatura', 0);
-      document.getElementById('cartResponsavel').value = '';
-      document.getElementById('cartCategoria').value =
-        state.categorias.indexOf('Dívidas') >= 0 ? 'Dívidas' : (state.categorias[0] || '');
-      document.getElementById('cartObs').value = '';
+      document.getElementById('fixaNome').value = '';
+      document.getElementById('fixaDia').value = '';
+      setMoedaInput('fixaValor', 0);
+      document.getElementById('fixaResponsavel').value = '';
+      document.getElementById('fixaCategoria').value = catPadrao || '';
+      document.getElementById('fixaObs').value = '';
     }
     sincronizarTodosSelects();
-    document.getElementById('modalCartao').classList.add('open');
+    document.getElementById('modalFixa').classList.add('open');
   }
 
-  function fecharModalCartao() {
-    document.getElementById('modalCartao').classList.remove('open');
+  function fecharModalFixa() {
+    document.getElementById('modalFixa').classList.remove('open');
   }
 
-  function salvarCartao() {
-    const nome = document.getElementById('cartNome').value.trim();
+  function salvarFixa() {
+    const tipo = document.getElementById('fixaTipo').value === 'cartao' ? 'cartao' : 'variavel';
+    const nome = document.getElementById('fixaNome').value.trim();
     if (!nome) {
-      mostrarAlerta('Informe o nome do cartão.');
+      mostrarAlerta(tipo === 'cartao' ? 'Informe o nome do cartão.' : 'Informe o nome da conta.');
       return;
     }
-    const dia = getInteiroInput('cartDia', 0) || null;
+    const dia = getInteiroInput('fixaDia', 0) || null;
     if (!dia) {
-      mostrarAlerta('Informe o dia de vencimento da fatura.');
+      mostrarAlerta('Informe o dia de vencimento.');
       return;
     }
-    const fatura = getMoedaInput('cartFatura');
-    const id = document.getElementById('cartaoId').value;
+    const valorMes = getMoedaInput('fixaValor');
+    const id = document.getElementById('fixaId').value;
     const key = mesKeyAtual();
+    const catPadrao = tipo === 'cartao' ? 'Dívidas' : 'Moradia';
     const dados = {
-      tipo: 'cartao',
+      tipo: tipo,
       descricao: nome,
       diaVencimento: dia,
-      valor: fatura,
-      responsavel: document.getElementById('cartResponsavel').value.trim(),
-      categoria: document.getElementById('cartCategoria').value || 'Dívidas',
-      obs: document.getElementById('cartObs').value.trim(),
+      valor: valorMes,
+      responsavel: document.getElementById('fixaResponsavel').value.trim(),
+      categoria: document.getElementById('fixaCategoria').value || catPadrao,
+      obs: document.getElementById('fixaObs').value.trim(),
       dataInicio: '',
       totalParcelas: 0,
       parcelasPagas: 0,
@@ -2878,18 +2905,18 @@
       if (i >= 0) {
         const prev = state.contas[i];
         const valoresMes = (prev.valoresMes && typeof prev.valoresMes === 'object') ? { ...prev.valoresMes } : {};
-        valoresMes[key] = fatura;
+        valoresMes[key] = valorMes;
         state.contas[i] = Object.assign({}, prev, dados, { valoresMes: valoresMes });
         delete state.contas[i].pagamentos;
       }
     } else {
       const valoresMes = {};
-      valoresMes[key] = fatura;
+      valoresMes[key] = valorMes;
       state.contas.push(Object.assign({ id: uid(), valoresMes: valoresMes }, dados));
     }
     salvar();
-    fecharModalCartao();
-    renderCartoes();
+    fecharModalFixa();
+    renderFixas();
     atualizarTotais();
   }
 
@@ -3223,7 +3250,7 @@
   function renderTudo() {
     atualizarLabelMes();
     if (viewAtual === 'contas') renderContas();
-    else if (viewAtual === 'cartoes') renderCartoes();
+    else if (viewAtual === 'fixas') renderFixas();
     else if (viewAtual === 'entradas') renderEntradas();
     else if (viewAtual === 'resumo') renderResumo();
     else renderAjustes();
