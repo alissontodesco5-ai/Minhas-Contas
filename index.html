@@ -1034,17 +1034,13 @@
 
 <script>
   // Escopo global (mesmo padrão da Lista de compras) para onclick="..." funcionar
-  const APP_VERSION = 'v12'; // manter igual ao CACHE_NAME em service-worker.js (minhas-contas-v12)
+  const APP_VERSION = 'v13'; // manter igual ao CACHE_NAME em service-worker.js (minhas-contas-v13)
   const STORAGE_KEY = 'minhas-contas-v1';
+  const MIGRACAO_ENTRADAS_KEY = 'mc-migracao-entradas-v13';
   const MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
   const MESES_CURTO = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   const CATEGORIAS_PADRAO = ['Dívidas', 'Alimentação', 'Educação', 'Bem Estar', 'Moradia', 'Transporte', 'Lazer', 'Outros'];
-  const ENTRADAS_PADRAO = [
-    { classe: 'Pagamento', valor: 0 },
-    { classe: 'Vale', valor: 0 },
-    { classe: 'Aluguel', valor: 0 },
-    { classe: 'VA', valor: 0 }
-  ];
+  const ENTRADAS_PADRAO = []; // cada usuário cadastra as próprias entradas
   const TAMANHOS_FONTE = { pequeno: '87.5%', medio: '100%', grande: '112.5%' };
   const DIAS_ALERTA = 3;
 
@@ -1085,7 +1081,7 @@
   function dadosIniciais() {
     return {
       contas: [],
-      entradas: ENTRADAS_PADRAO.map(function(e) { return { id: uid(), classe: e.classe, valor: e.valor, valoresMes: {} }; }),
+      entradas: [],
       categorias: CATEGORIAS_PADRAO.slice(),
       pagosPorMes: {},
       mesRef: mesKey(hoje.getFullYear(), hoje.getMonth())
@@ -1095,7 +1091,10 @@
   function carregar() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return dadosIniciais();
+      if (!raw) {
+        localStorage.setItem(MIGRACAO_ENTRADAS_KEY, '1');
+        return dadosIniciais();
+      }
       const data = JSON.parse(raw);
       if (!Array.isArray(data.contas)) data.contas = [];
       else {
@@ -1108,11 +1107,16 @@
           return c;
         });
       }
-      if (!Array.isArray(data.entradas)) {
-        data.entradas = ENTRADAS_PADRAO.map(function(e) { return { id: uid(), classe: e.classe, valor: e.valor, valoresMes: {} }; });
-      } else {
-        data.entradas = data.entradas.map(normalizarEntrada);
+      if (!Array.isArray(data.entradas)) data.entradas = [];
+      else data.entradas = data.entradas.map(normalizarEntrada);
+
+      // v13: zera entradas de todos os usuários uma única vez nesta atualização
+      if (!localStorage.getItem(MIGRACAO_ENTRADAS_KEY)) {
+        data.entradas = [];
+        localStorage.setItem(MIGRACAO_ENTRADAS_KEY, '1');
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
       }
+
       if (!Array.isArray(data.categorias) || !data.categorias.length) data.categorias = CATEGORIAS_PADRAO.slice();
       if (!data.pagosPorMes || typeof data.pagosPorMes !== 'object') data.pagosPorMes = {};
       return data;
