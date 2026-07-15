@@ -244,7 +244,8 @@
     align-items: center;
   }
   .toolbar input[type="search"],
-  .toolbar select { flex: 1; min-width: 120px; }
+  .toolbar select,
+  .toolbar .ui-select-wrap { flex: 1; min-width: 120px; }
   input, select, textarea {
     width: 100%;
     padding: 10px 12px;
@@ -314,7 +315,9 @@
     font-weight: 700;
     font-size: 0.9rem;
     cursor: pointer;
+    transition: transform 0.15s ease, opacity 0.2s ease, background 0.2s ease, border-color 0.2s ease;
   }
+  .btn:active { transform: scale(0.97); }
   .btn-primary {
     background: var(--accent);
     color: var(--btn-text-on-accent);
@@ -362,12 +365,6 @@
     display: flex;
     align-items: flex-start;
     gap: 10px;
-  }
-  .check-pago {
-    width: 22px; height: 22px;
-    margin-top: 2px;
-    accent-color: var(--success);
-    flex-shrink: 0;
   }
   .conta-main { flex: 1; min-width: 0; }
   .conta-titulo {
@@ -458,20 +455,25 @@
   .resumo-table th, .resumo-table td { white-space: nowrap; }
   .resumo-scroll { overflow-x: auto; }
   .modal-overlay {
-    display: none;
     position: fixed;
     inset: 0;
     z-index: 50;
-    background: rgba(0,0,0,0.55);
+    display: flex;
     align-items: flex-end;
     justify-content: center;
     padding: 0;
+    background: rgba(0,0,0,0.55);
+    opacity: 0;
+    visibility: hidden;
     pointer-events: none;
+    transition: opacity 0.28s ease, visibility 0.28s ease, background 0.28s ease;
   }
   .modal-overlay.open {
-    display: flex;
+    opacity: 1;
+    visibility: visible;
     pointer-events: auto;
   }
+  .modal-overlay.picker-layer { z-index: 70; }
   .modal-box {
     background: var(--card);
     border-radius: 18px 18px 0 0;
@@ -481,6 +483,13 @@
     overflow-y: auto;
     padding: 18px 16px calc(18px + env(safe-area-inset-bottom));
     border: 1px solid var(--border);
+    transform: translateY(28px) scale(0.98);
+    opacity: 0;
+    transition: transform 0.34s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.28s ease;
+  }
+  .modal-overlay.open .modal-box {
+    transform: translateY(0) scale(1);
+    opacity: 1;
   }
   .modal-box h3 { margin: 0 0 14px; font-size: 1.1rem; }
   .modal-actions {
@@ -490,6 +499,187 @@
     flex-wrap: wrap;
   }
   .modal-actions .btn { flex: 1; min-width: 100px; }
+
+  /* Selects / date do sistema (não nativos) */
+  .ui-select-wrap {
+    position: relative;
+    width: 100%;
+  }
+  .ui-select-wrap select,
+  .ui-select-wrap input[type="date"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+    pointer-events: none;
+    margin: 0;
+    padding: 0;
+    border: none;
+  }
+  .ui-select-trigger {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--input-bg);
+    color: var(--texto);
+    font-size: 0.95rem;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, transform 0.15s ease;
+  }
+  .ui-select-trigger:active { transform: scale(0.985); }
+  .ui-select-trigger:focus {
+    outline: none;
+    border-color: rgba(46, 196, 182, 0.65);
+    box-shadow: 0 0 0 2px rgba(46, 196, 182, 0.18);
+  }
+  .ui-select-trigger .ui-select-label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .ui-select-trigger .ui-select-label.is-placeholder { color: var(--muted); }
+  .ui-select-trigger .ui-select-chevron {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    opacity: 0.7;
+    transition: transform 0.25s ease;
+  }
+  .ui-select-trigger[aria-expanded="true"] .ui-select-chevron {
+    transform: rotate(180deg);
+  }
+  .picker-options {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 52vh;
+    overflow-y: auto;
+  }
+  .picker-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+    padding: 14px 12px;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    background: transparent;
+    color: var(--texto);
+    font-size: 0.98rem;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.18s ease, color 0.18s ease;
+  }
+  .picker-option:last-child { border-bottom: none; }
+  .picker-option:hover,
+  .picker-option:focus {
+    background: var(--chip-bg);
+    outline: none;
+  }
+  .picker-option.selected {
+    color: var(--accent);
+    font-weight: 700;
+    background: rgba(46, 196, 182, 0.12);
+  }
+  .picker-option .check {
+    opacity: 0;
+    color: var(--accent);
+    font-weight: 700;
+  }
+  .picker-option.selected .check { opacity: 1; }
+
+  .date-picker-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .date-picker-nav .mes-titulo {
+    font-weight: 700;
+    font-size: 1rem;
+  }
+  .date-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin-bottom: 6px;
+    text-align: center;
+    font-size: 0.72rem;
+    color: var(--muted);
+    font-weight: 700;
+  }
+  .date-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+  }
+  .date-cell {
+    aspect-ratio: 1;
+    border: none;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--texto);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.18s ease, color 0.18s ease, transform 0.15s ease;
+  }
+  .date-cell:disabled {
+    opacity: 0.25;
+    cursor: default;
+  }
+  .date-cell:not(:disabled):hover {
+    background: var(--chip-bg);
+  }
+  .date-cell.hoje {
+    box-shadow: inset 0 0 0 1px var(--accent);
+  }
+  .date-cell.selected {
+    background: var(--accent);
+    color: var(--btn-text-on-accent);
+  }
+  .date-cell:active:not(:disabled) { transform: scale(0.94); }
+  .check-pago {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 22px;
+    height: 22px;
+    margin-top: 2px;
+    border: 2px solid var(--border);
+    border-radius: 6px;
+    background: var(--input-bg);
+    flex-shrink: 0;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+  }
+  .check-pago:checked {
+    background: var(--success);
+    border-color: var(--success);
+  }
+  .check-pago:checked::after {
+    content: '';
+    position: absolute;
+    left: 6px;
+    top: 2px;
+    width: 5px;
+    height: 10px;
+    border: solid #fff;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+  }
+  .check-pago:active { transform: scale(0.92); }
   .config-row {
     display: flex;
     flex-wrap: wrap;
@@ -657,7 +847,14 @@
   }
   @media (min-width: 900px) {
     .modal-overlay { align-items: center; padding: 24px; }
-    .modal-box { border-radius: 16px; max-height: 88vh; }
+    .modal-box {
+      border-radius: 16px;
+      max-height: 88vh;
+      transform: translateY(12px) scale(0.97);
+    }
+    .modal-overlay.open .modal-box {
+      transform: translateY(0) scale(1);
+    }
     .contas-cards { display: none; }
     .table-wrap { display: block; }
   }
@@ -1069,9 +1266,38 @@
   </div>
 </div>
 
+<div class="modal-overlay picker-layer" id="modalSelectPicker" onclick="if(event.target===this) fecharSelectPicker()">
+  <div class="modal-box" style="max-width:420px">
+    <h3 id="selectPickerTitulo">Selecionar</h3>
+    <div class="picker-options" id="selectPickerLista" role="listbox"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" type="button" onclick="fecharSelectPicker()" style="width:100%">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay picker-layer" id="modalDatePicker" onclick="if(event.target===this) fecharDatePicker()">
+  <div class="modal-box" style="max-width:420px">
+    <h3 id="datePickerTitulo">Data</h3>
+    <div class="date-picker-nav">
+      <button class="btn btn-secondary btn-icon" type="button" onclick="mudarMesDatePicker(-1)" aria-label="Mês anterior">‹</button>
+      <div class="mes-titulo" id="datePickerMesLabel">—</div>
+      <button class="btn btn-secondary btn-icon" type="button" onclick="mudarMesDatePicker(1)" aria-label="Próximo mês">›</button>
+    </div>
+    <div class="date-weekdays">
+      <span>D</span><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span>
+    </div>
+    <div class="date-grid" id="datePickerGrid"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" type="button" onclick="limparDatePicker()">Limpar</button>
+      <button class="btn btn-primary" type="button" onclick="fecharDatePicker()">OK</button>
+    </div>
+  </div>
+</div>
+
 <script>
   // Escopo global (mesmo padrão da Lista de compras) para onclick="..." funcionar
-  const APP_VERSION = 'v16'; // manter igual ao CACHE_NAME em service-worker.js (minhas-contas-v16)
+  const APP_VERSION = 'v17'; // manter igual ao CACHE_NAME em service-worker.js (minhas-contas-v17)
   const STORAGE_KEY = 'minhas-contas-v1';
   const BACKUP_KEY = 'minhas-contas-backup';
   const MIGRACAO_ENTRADAS_KEY = 'mc-migracao-entradas-v13';
@@ -1079,14 +1305,13 @@
   const VERSAO_VISTA_KEY = 'mc-versao-vista';
   // Fallback se novidades.json não carregar (ex.: offline). Ao publicar, atualize também novidades.json.
   const NOVIDADES_LOCAL = {
-    versao: 'v16',
-    titulo: 'Novidades da v16',
+    versao: 'v17',
+    titulo: 'Novidades da v17',
     itens: [
-      'Novo ícone do app: carteira com moedas',
-      'Atualização do sistema preserva seus registros (backup automático)',
-      'Sininho só na barra de baixo; novidades explicadas antes de atualizar',
-      'Instalar no iPhone com passo a passo',
-      'Notificações quando a conta estiver perto do vencimento ou atrasada'
+      'Menus e caixas de seleção no visual do app (sem lista nativa do celular)',
+      'Calendário próprio para datas',
+      'Pop-ups com transição leve e suave',
+      'Checkboxes no estilo do sistema'
     ]
   };
   const MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
@@ -1444,6 +1669,7 @@
     document.getElementById('pagTipo').value = tipoPadrao || 'parcela';
     setMoedaInput('pagValorPago', Number(c.valor) || 0);
     aoMudarTipoPagamento();
+    sincronizarTodosSelects();
     document.getElementById('modalPagamento').classList.add('open');
   }
 
@@ -1928,6 +2154,7 @@
     sel.innerHTML = '<option value="">Todas categorias</option>' +
       state.categorias.map(c => '<option value="' + esc(c) + '">' + esc(c) + '</option>').join('');
     sel.value = atual;
+    sincronizarTodosSelects();
   }
 
   function contasFiltradas() {
@@ -2060,6 +2287,7 @@
     sel.innerHTML = state.categorias.map(c =>
       `<option value="${esc(c)}" ${c === selected ? 'selected' : ''}>${esc(c)}</option>`
     ).join('');
+    sincronizarTodosSelects();
   }
 
   function abrirModalConta(id) {
@@ -2090,6 +2318,7 @@
       document.getElementById('cTotalParcelas').value = '1';
     }
     alternarCamposTipoConta();
+    sincronizarTodosSelects();
     document.getElementById('modalConta').classList.add('open');
   }
 
@@ -2645,6 +2874,208 @@
       .replace(/"/g, '&quot;');
   }
 
+  /* —— Controles do sistema (select/data/modal custom) —— */
+  let selectPickerAlvo = null;
+  let datePickerAlvo = null;
+  let datePickerAno = hoje.getFullYear();
+  let datePickerMes = hoje.getMonth();
+  const UI_CHEVRON = '<svg class="ui-select-chevron" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 10l5 5 5-5z"/></svg>';
+
+  function iniciarControlesSistema() {
+    document.querySelectorAll('select').forEach(aprimorarSelect);
+    document.querySelectorAll('input[type="date"]').forEach(aprimorarDate);
+  }
+
+  function aprimorarSelect(sel) {
+    if (!sel || sel.dataset.uiReady === '1') return;
+    sel.dataset.uiReady = '1';
+    const wrap = document.createElement('div');
+    wrap.className = 'ui-select-wrap';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'ui-select-trigger';
+    btn.setAttribute('aria-haspopup', 'listbox');
+    btn.setAttribute('aria-expanded', 'false');
+    btn.innerHTML = '<span class="ui-select-label"></span>' + UI_CHEVRON;
+    sel.parentNode.insertBefore(wrap, sel);
+    wrap.appendChild(btn);
+    wrap.appendChild(sel);
+    btn.addEventListener('click', function() { abrirSelectPicker(sel); });
+    sel.addEventListener('change', function() { atualizarTriggerSelect(sel); });
+    atualizarTriggerSelect(sel);
+  }
+
+  function tituloDoCampo(el, fallback) {
+    const bloco = el.closest('.full, .form-grid > div, .toolbar, div');
+    if (bloco) {
+      const lab = bloco.querySelector('label.field');
+      if (lab && lab.textContent.trim()) return lab.textContent.trim();
+    }
+    if (el.id === 'filtroCategoria') return 'Categoria';
+    if (el.id === 'filtroStatus') return 'Status';
+    return fallback || 'Selecionar';
+  }
+
+  function atualizarTriggerSelect(sel) {
+    const wrap = sel.closest('.ui-select-wrap');
+    if (!wrap) return;
+    const label = wrap.querySelector('.ui-select-label');
+    if (!label) return;
+    const opt = sel.options[sel.selectedIndex];
+    const texto = opt ? opt.textContent : '';
+    label.textContent = texto || 'Selecionar';
+    label.classList.toggle('is-placeholder', !sel.value && (sel.id === 'filtroCategoria' || sel.id === 'filtroStatus'));
+  }
+
+  function sincronizarTodosSelects() {
+    document.querySelectorAll('select[data-ui-ready="1"]').forEach(atualizarTriggerSelect);
+    document.querySelectorAll('input[type="date"][data-ui-ready="1"]').forEach(atualizarTriggerDate);
+  }
+
+  function abrirSelectPicker(sel) {
+    selectPickerAlvo = sel;
+    const wrap = sel.closest('.ui-select-wrap');
+    const btn = wrap && wrap.querySelector('.ui-select-trigger');
+    if (btn) btn.setAttribute('aria-expanded', 'true');
+    document.getElementById('selectPickerTitulo').textContent = tituloDoCampo(sel, 'Selecionar');
+    const lista = document.getElementById('selectPickerLista');
+    lista.innerHTML = '';
+    Array.from(sel.options).forEach(function(opt, idx) {
+      const item = document.createElement('button');
+      item.type = 'button';
+      item.className = 'picker-option' + (opt.selected ? ' selected' : '');
+      item.setAttribute('role', 'option');
+      item.innerHTML = '<span>' + esc(opt.textContent) + '</span><span class="check">✓</span>';
+      item.addEventListener('click', function() {
+        sel.selectedIndex = idx;
+        sel.dispatchEvent(new Event('change', { bubbles: true }));
+        atualizarTriggerSelect(sel);
+        fecharSelectPicker();
+      });
+      lista.appendChild(item);
+    });
+    document.getElementById('modalSelectPicker').classList.add('open');
+  }
+
+  function fecharSelectPicker() {
+    document.getElementById('modalSelectPicker').classList.remove('open');
+    if (selectPickerAlvo) {
+      const wrap = selectPickerAlvo.closest('.ui-select-wrap');
+      const btn = wrap && wrap.querySelector('.ui-select-trigger');
+      if (btn) btn.setAttribute('aria-expanded', 'false');
+    }
+    selectPickerAlvo = null;
+  }
+
+  function aprimorarDate(inp) {
+    if (!inp || inp.dataset.uiReady === '1') return;
+    inp.dataset.uiReady = '1';
+    const wrap = document.createElement('div');
+    wrap.className = 'ui-select-wrap';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'ui-select-trigger';
+    btn.setAttribute('aria-haspopup', 'dialog');
+    btn.setAttribute('aria-expanded', 'false');
+    btn.innerHTML = '<span class="ui-select-label"></span>' + UI_CHEVRON;
+    inp.parentNode.insertBefore(wrap, inp);
+    wrap.appendChild(btn);
+    wrap.appendChild(inp);
+    btn.addEventListener('click', function() { abrirDatePicker(inp); });
+    inp.addEventListener('change', function() { atualizarTriggerDate(inp); });
+    atualizarTriggerDate(inp);
+  }
+
+  function formatarDataExibicao(iso) {
+    if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return '';
+    const p = iso.split('-');
+    return p[2] + '/' + p[1] + '/' + p[0];
+  }
+
+  function atualizarTriggerDate(inp) {
+    const wrap = inp.closest('.ui-select-wrap');
+    if (!wrap) return;
+    const label = wrap.querySelector('.ui-select-label');
+    if (!label) return;
+    const texto = formatarDataExibicao(inp.value);
+    label.textContent = texto || 'Escolher data';
+    label.classList.toggle('is-placeholder', !texto);
+  }
+
+  function abrirDatePicker(inp) {
+    datePickerAlvo = inp;
+    const wrap = inp.closest('.ui-select-wrap');
+    const btn = wrap && wrap.querySelector('.ui-select-trigger');
+    if (btn) btn.setAttribute('aria-expanded', 'true');
+    document.getElementById('datePickerTitulo').textContent = tituloDoCampo(inp, 'Data');
+    if (inp.value && /^\d{4}-\d{2}-\d{2}$/.test(inp.value)) {
+      const p = inp.value.split('-');
+      datePickerAno = Number(p[0]);
+      datePickerMes = Number(p[1]) - 1;
+    } else {
+      datePickerAno = hoje.getFullYear();
+      datePickerMes = hoje.getMonth();
+    }
+    renderDatePickerGrid();
+    document.getElementById('modalDatePicker').classList.add('open');
+  }
+
+  function fecharDatePicker() {
+    document.getElementById('modalDatePicker').classList.remove('open');
+    if (datePickerAlvo) {
+      const wrap = datePickerAlvo.closest('.ui-select-wrap');
+      const btn = wrap && wrap.querySelector('.ui-select-trigger');
+      if (btn) btn.setAttribute('aria-expanded', 'false');
+    }
+    datePickerAlvo = null;
+  }
+
+  function limparDatePicker() {
+    if (!datePickerAlvo) return;
+    datePickerAlvo.value = '';
+    datePickerAlvo.dispatchEvent(new Event('change', { bubbles: true }));
+    atualizarTriggerDate(datePickerAlvo);
+    fecharDatePicker();
+  }
+
+  function mudarMesDatePicker(delta) {
+    datePickerMes += delta;
+    if (datePickerMes > 11) { datePickerMes = 0; datePickerAno++; }
+    if (datePickerMes < 0) { datePickerMes = 11; datePickerAno--; }
+    renderDatePickerGrid();
+  }
+
+  function escolherDataPicker(iso) {
+    if (!datePickerAlvo) return;
+    datePickerAlvo.value = iso;
+    datePickerAlvo.dispatchEvent(new Event('change', { bubbles: true }));
+    atualizarTriggerDate(datePickerAlvo);
+    fecharDatePicker();
+  }
+
+  function renderDatePickerGrid() {
+    const label = MESES[datePickerMes].charAt(0).toUpperCase() + MESES[datePickerMes].slice(1) + ' ' + datePickerAno;
+    document.getElementById('datePickerMesLabel').textContent = label;
+    const grid = document.getElementById('datePickerGrid');
+    const primeiro = new Date(datePickerAno, datePickerMes, 1);
+    const inicioSemana = primeiro.getDay();
+    const diasNoMes = new Date(datePickerAno, datePickerMes + 1, 0).getDate();
+    const selecionado = datePickerAlvo ? datePickerAlvo.value : '';
+    const hojeIso = hoje.getFullYear() + '-' + String(hoje.getMonth() + 1).padStart(2, '0') + '-' + String(hoje.getDate()).padStart(2, '0');
+    let html = '';
+    for (let i = 0; i < inicioSemana; i++) {
+      html += '<button type="button" class="date-cell" disabled aria-hidden="true"></button>';
+    }
+    for (let d = 1; d <= diasNoMes; d++) {
+      const iso = datePickerAno + '-' + String(datePickerMes + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+      let cls = 'date-cell';
+      if (iso === selecionado) cls += ' selected';
+      if (iso === hojeIso) cls += ' hoje';
+      html += '<button type="button" class="' + cls + '" onclick="escolherDataPicker(\'' + iso + '\')">' + d + '</button>';
+    }
+    grid.innerHTML = html;
+  }
+
   let atualizacaoDisponivel = false;
   let atualizacaoSolicitadaPeloUsuario = false;
   let modalAtualizacaoJaMostrado = false;
@@ -2923,6 +3354,7 @@
     aplicarTemaResolvido();
     definirTamanhoFonte(localStorage.getItem('mc-fonte') || 'medio', false);
     renderTemaButtons();
+    iniciarControlesSistema();
     atualizarLabelMes();
     mostrarView('resumo');
     atualizarTotais();

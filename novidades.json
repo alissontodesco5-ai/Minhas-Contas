@@ -1,11 +1,10 @@
 {
-  "versao": "v16",
-  "titulo": "Novidades da v16",
+  "versao": "v17",
+  "titulo": "Novidades da v17",
   "itens": [
-    "Novo ícone do app: carteira com moedas",
-    "Atualização do sistema preserva seus registros (backup automático)",
-    "Sininho só na barra de baixo; novidades explicadas antes de atualizar",
-    "Instalar no iPhone com passo a passo",
-    "Notificações quando a conta estiver perto do vencimento ou atrasada"
+    "Menus e caixas de seleção no visual do app (sem lista nativa do celular)",
+    "Calendário próprio para datas",
+    "Pop-ups com transição leve e suave",
+    "Checkboxes no estilo do sistema"
   ]
 }
