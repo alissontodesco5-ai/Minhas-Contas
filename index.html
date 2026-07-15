@@ -20,8 +20,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Contas">
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=16">
+<link rel="icon" href="icons/icon-192.png?v=16">
 <style>
   :root {
     --bg: #042824;
@@ -195,11 +195,13 @@
     width: 22px; height: 22px; fill: currentColor;
   }
   .bottom-nav button.active { color: var(--accent); }
-  .bottom-nav button.tem-atualizacao {
+  .bottom-nav button.tem-atualizacao,
+  .bottom-nav button.tem-vencimento {
     color: var(--accent);
     animation: sino-pulsar 1.2s ease-in-out infinite;
   }
-  .bottom-nav button.tem-atualizacao .bell-dot { display: block; }
+  .bottom-nav button.tem-atualizacao .bell-dot,
+  .bottom-nav button.tem-vencimento .bell-dot { display: block; }
   .bottom-nav .bell-wrap { position: relative; display: inline-flex; }
   .bottom-nav .bell-dot {
     display: none;
@@ -672,14 +674,6 @@
         <div class="mes-label" id="mesLabel">—</div>
         <button type="button" onclick="mudarMes(1)" aria-label="Próximo mês">›</button>
       </div>
-      <button type="button" class="btn-sino btn-sino-update" id="btnSinoAtualizacao" onclick="clicarSinoAtualizacao()" aria-label="Nova atualização disponível">
-        <svg viewBox="0 0 24 24"><path d="M12 2a1 1 0 0 1 1 1v1.06A7 7 0 0 1 19 11v4l1.7 2.55a1 1 0 0 1-.83 1.45H4.13a1 1 0 0 1-.83-1.45L5 15v-4a7 7 0 0 1 6-6.94V3a1 1 0 0 1 1-1zm0 20a2.5 2.5 0 0 1-2.45-2h4.9A2.5 2.5 0 0 1 12 22z"/></svg>
-        <span class="bell-dot"></span>
-      </button>
-      <button type="button" class="btn-sino" id="btnSinoVencimento" onclick="abrirAlertasVencimento()" aria-label="Contas próximas do vencimento">
-        <svg viewBox="0 0 24 24"><path d="M12 2a1 1 0 0 1 1 1v1.06A7 7 0 0 1 19 11v4l1.7 2.55a1 1 0 0 1-.83 1.45H4.13a1 1 0 0 1-.83-1.45L5 15v-4a7 7 0 0 1 6-6.94V3a1 1 0 0 1 1-1zm0 20a2.5 2.5 0 0 1-2.45-2h4.9A2.5 2.5 0 0 1 12 22z"/></svg>
-        <span class="bell-dot"></span>
-      </button>
     </div>
   </div>
 </header>
@@ -831,8 +825,15 @@
   </div>
 
   <div class="section-card">
+    <h2 class="section-title">Notificações</h2>
+    <p style="margin:0 0 12px;color:var(--muted);font-size:0.9rem">Receba avisos no celular quando uma conta estiver perto do vencimento (até 3 dias) ou atrasada. No iPhone, o app precisa estar instalado na Tela de Início (iOS 16.4+).</p>
+    <button class="btn btn-primary" type="button" id="btnAtivarNotif" onclick="ativarNotificacoes()" style="width:100%;margin-bottom:8px">Ativar notificações</button>
+    <div id="statusNotif" style="font-size:0.85rem;color:var(--muted)"></div>
+  </div>
+
+  <div class="section-card">
     <h2 class="section-title">Instalação</h2>
-    <button class="btn btn-primary" type="button" id="btnInstalar" onclick="instalarApp()" style="display:none;width:100%;margin-bottom:8px">Instalar app</button>
+    <button class="btn btn-primary" type="button" id="btnInstalar" onclick="instalarApp()" style="width:100%;margin-bottom:8px">Instalar app</button>
     <button class="btn btn-secondary" type="button" id="btnAtualizar" onclick="atualizarSistema()" style="width:100%">Atualizar sistema</button>
     <button class="btn btn-danger" type="button" style="margin-top:10px;width:100%" onclick="confirmarReset()">Apagar todos os dados</button>
   </div>
@@ -851,6 +852,13 @@
   <button type="button" id="navEntradas" onclick="mostrarView('entradas')">
     <svg viewBox="0 0 24 24"><path d="M11 4h2v8.17l2.59-2.58L17 11l-5 5-5-5 1.41-1.41L11 12.17V4zM5 19h14v2H5v-2z"/></svg>
     Entradas
+  </button>
+  <button type="button" id="navBtnVencimento" onclick="abrirAlertasVencimento()" style="display:none">
+    <span class="bell-wrap">
+      <svg viewBox="0 0 24 24"><path d="M12 2a1 1 0 0 1 1 1v1.06A7 7 0 0 1 19 11v4l1.7 2.55a1 1 0 0 1-.83 1.45H4.13a1 1 0 0 1-.83-1.45L5 15v-4a7 7 0 0 1 6-6.94V3a1 1 0 0 1 1-1zm0 20a2.5 2.5 0 0 1-2.45-2h4.9A2.5 2.5 0 0 1 12 22z"/></svg>
+      <span class="bell-dot"></span>
+    </span>
+    Vencendo
   </button>
   <button type="button" id="navBtnAtualizacao" onclick="clicarSinoAtualizacao()" style="display:none">
     <span class="bell-wrap">
@@ -1011,6 +1019,35 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="modalInstalarIOS" onclick="if(event.target===this) fecharModalInstalarIOS()">
+  <div class="modal-box" style="max-width:420px">
+    <h3>Instalar no iPhone</h3>
+    <p style="margin:0 0 10px;color:var(--muted);font-size:0.95rem">No iPhone não dá para instalar com um único toque pelo Safari. Siga estes passos:</p>
+    <ol style="margin:0 0 14px;padding-left:18px;color:var(--texto);line-height:1.5">
+      <li>Toque no botão <strong>Compartilhar</strong> (□↑) na barra do Safari</li>
+      <li>Role e escolha <strong>Adicionar à Tela de Início</strong></li>
+      <li>Toque em <strong>Adicionar</strong></li>
+    </ol>
+    <p style="margin:0 0 14px;color:var(--muted);font-size:0.85rem">Depois de instalado, abra o app pela tela de início para receber notificações de vencimento.</p>
+    <div class="modal-actions">
+      <button class="btn btn-primary" type="button" onclick="fecharModalInstalarIOS()" style="width:100%">Entendi</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalAtualizacao" onclick="if(event.target===this) fecharModalAtualizacao()">
+  <div class="modal-box" style="max-width:420px">
+    <h3 id="atualizacaoTitulo">Nova atualização</h3>
+    <p id="atualizacaoVersao" style="margin:0 0 10px;color:var(--muted);font-size:0.9rem"></p>
+    <ul class="alerta-lista" id="listaNovidades"></ul>
+    <p style="margin:12px 0 0;color:var(--muted);font-size:0.85rem" id="atualizacaoAvisoDados">Seus cadastros (contas, entradas e pagamentos) ficam salvos neste aparelho e não são apagados na atualização.</p>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" type="button" onclick="fecharModalAtualizacao()">Agora não</button>
+      <button class="btn btn-primary" type="button" id="btnConfirmarAtualizacao" onclick="confirmarAtualizacaoDoModal()">Atualizar</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modalAlerta" onclick="if(event.target===this) fecharAlerta()">
   <div class="modal-box" style="max-width:400px">
     <h3>Aviso</h3>
@@ -1034,9 +1071,24 @@
 
 <script>
   // Escopo global (mesmo padrão da Lista de compras) para onclick="..." funcionar
-  const APP_VERSION = 'v14'; // manter igual ao CACHE_NAME em service-worker.js (minhas-contas-v14)
+  const APP_VERSION = 'v16'; // manter igual ao CACHE_NAME em service-worker.js (minhas-contas-v16)
   const STORAGE_KEY = 'minhas-contas-v1';
+  const BACKUP_KEY = 'minhas-contas-backup';
   const MIGRACAO_ENTRADAS_KEY = 'mc-migracao-entradas-v13';
+  const NOTIF_HIST_KEY = 'mc-notif-hist';
+  const VERSAO_VISTA_KEY = 'mc-versao-vista';
+  // Fallback se novidades.json não carregar (ex.: offline). Ao publicar, atualize também novidades.json.
+  const NOVIDADES_LOCAL = {
+    versao: 'v16',
+    titulo: 'Novidades da v16',
+    itens: [
+      'Novo ícone do app: carteira com moedas',
+      'Atualização do sistema preserva seus registros (backup automático)',
+      'Sininho só na barra de baixo; novidades explicadas antes de atualizar',
+      'Instalar no iPhone com passo a passo',
+      'Notificações quando a conta estiver perto do vencimento ou atrasada'
+    ]
+  };
   const MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
   const MESES_CURTO = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   const CATEGORIAS_PADRAO = ['Dívidas', 'Alimentação', 'Educação', 'Bem Estar', 'Moradia', 'Transporte', 'Lazer', 'Outros'];
@@ -1088,52 +1140,124 @@
     };
   }
 
+  function normalizarEstado(data) {
+    if (!data || typeof data !== 'object') return null;
+    if (!Array.isArray(data.contas)) data.contas = [];
+    else {
+      data.contas = data.contas.map(function(c) {
+        if (!c.tipo) {
+          c.tipo = (Number(c.totalParcelas) || 0) > 0 ? 'parcelada' : 'recorrente';
+        }
+        if (c.tipo === 'parcelada' && !Array.isArray(c.pagamentos)) c.pagamentos = [];
+        delete c.prioridade;
+        return c;
+      });
+    }
+    if (!Array.isArray(data.entradas)) data.entradas = [];
+    else data.entradas = data.entradas.map(normalizarEntrada);
+    if (!Array.isArray(data.categorias) || !data.categorias.length) data.categorias = CATEGORIAS_PADRAO.slice();
+    if (!data.pagosPorMes || typeof data.pagosPorMes !== 'object') data.pagosPorMes = {};
+    return data;
+  }
+
+  function lerStorageJson(chave) {
+    try {
+      const raw = localStorage.getItem(chave);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch (err) {
+      return null;
+    }
+  }
+
+  function estadoTemRegistros(data) {
+    if (!data) return false;
+    return (Array.isArray(data.contas) && data.contas.length > 0) ||
+      (Array.isArray(data.entradas) && data.entradas.length > 0);
+  }
+
+  function gravarBackup(snapshot) {
+    try {
+      const texto = typeof snapshot === 'string' ? snapshot : JSON.stringify(snapshot);
+      localStorage.setItem(BACKUP_KEY, texto);
+    } catch (err) {
+      console.warn('Não foi possível gravar backup:', err);
+    }
+  }
+
   function carregar() {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) {
-        localStorage.setItem(MIGRACAO_ENTRADAS_KEY, '1');
+      let data = lerStorageJson(STORAGE_KEY);
+      if (!data) {
+        const backup = lerStorageJson(BACKUP_KEY);
+        if (backup) {
+          data = backup;
+          try { localStorage.setItem(STORAGE_KEY, JSON.stringify(backup)); } catch (e) {}
+        } else {
+          localStorage.setItem(MIGRACAO_ENTRADAS_KEY, '1');
+          return dadosIniciais();
+        }
+      }
+
+      data = normalizarEstado(data);
+      if (!data) {
+        const backup = normalizarEstado(lerStorageJson(BACKUP_KEY));
+        if (backup) {
+          try { localStorage.setItem(STORAGE_KEY, JSON.stringify(backup)); } catch (e) {}
+          return backup;
+        }
         return dadosIniciais();
       }
-      const data = JSON.parse(raw);
-      if (!Array.isArray(data.contas)) data.contas = [];
-      else {
-        data.contas = data.contas.map(function(c) {
-          if (!c.tipo) {
-            c.tipo = (Number(c.totalParcelas) || 0) > 0 ? 'parcelada' : 'recorrente';
-          }
-          if (c.tipo === 'parcelada' && !Array.isArray(c.pagamentos)) c.pagamentos = [];
-          delete c.prioridade;
-          return c;
-        });
-      }
-      if (!Array.isArray(data.entradas)) data.entradas = [];
-      else data.entradas = data.entradas.map(normalizarEntrada);
 
-      // v13: zera entradas de todos os usuários uma única vez nesta atualização
+      // v13: zera entradas uma única vez (já aplicado na maioria dos aparelhos)
       if (!localStorage.getItem(MIGRACAO_ENTRADAS_KEY)) {
         data.entradas = [];
         localStorage.setItem(MIGRACAO_ENTRADAS_KEY, '1');
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch (e) {}
       }
 
-      if (!Array.isArray(data.categorias) || !data.categorias.length) data.categorias = CATEGORIAS_PADRAO.slice();
-      if (!data.pagosPorMes || typeof data.pagosPorMes !== 'object') data.pagosPorMes = {};
+      gravarBackup(data);
       return data;
     } catch (err) {
+      const backup = normalizarEstado(lerStorageJson(BACKUP_KEY));
+      if (backup) return backup;
       return dadosIniciais();
     }
+  }
+
+  function salvar() {
+    try {
+      state.mesRef = mesKeyAtual();
+      const texto = JSON.stringify(state);
+      localStorage.setItem(STORAGE_KEY, texto);
+      gravarBackup(texto);
+      return true;
+    } catch (err) {
+      console.error('Erro ao salvar dados:', err);
+      try { gravarBackup(state); } catch (e) {}
+      return false;
+    }
+  }
+
+  /** Garante persistência antes de recarregar o app (atualização). */
+  function preservarDadosAntesDeAtualizar() {
+    const ok = salvar();
+    const principal = localStorage.getItem(STORAGE_KEY);
+    const backup = localStorage.getItem(BACKUP_KEY);
+    if (!principal && backup) {
+      try { localStorage.setItem(STORAGE_KEY, backup); } catch (e) {}
+    }
+    if (!localStorage.getItem(STORAGE_KEY) && estadoTemRegistros(state)) {
+      mostrarAlerta('Não foi possível gravar seus dados neste aparelho. Libere espaço e tente atualizar de novo.');
+      return false;
+    }
+    return ok || !!localStorage.getItem(STORAGE_KEY) || !!localStorage.getItem(BACKUP_KEY);
   }
 
   state = carregar();
   anoAtual = state.mesRef ? Number(state.mesRef.split('-')[0]) : hoje.getFullYear();
   mesAtual = state.mesRef ? Number(state.mesRef.split('-')[1]) - 1 : hoje.getMonth();
   anoResumo = anoAtual;
-
-  function salvar() {
-    state.mesRef = mesKeyAtual();
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }
 
   function formatarMoeda(valor) {
     return (Number(valor) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -1511,12 +1635,15 @@
 
   function atualizarSinoVencimento() {
     const lista = contasAlertaVencimento();
-    const btn = document.getElementById('btnSinoVencimento');
+    const btn = document.getElementById('navBtnVencimento');
+    if (!btn) return;
     if (!lista.length) {
-      btn.classList.remove('visible', 'pulsar');
+      btn.style.display = 'none';
+      btn.classList.remove('tem-vencimento');
       return;
     }
-    btn.classList.add('visible', 'pulsar');
+    btn.style.display = '';
+    btn.classList.add('tem-vencimento');
   }
 
   function abrirAlertasVencimento() {
@@ -1540,6 +1667,179 @@
 
   function fecharVencimentos() {
     document.getElementById('modalVencimentos').classList.remove('open');
+  }
+
+  function hojeISO() {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
+  function lerNotifHist() {
+    try {
+      return JSON.parse(localStorage.getItem(NOTIF_HIST_KEY) || '{}') || {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function salvarNotifHist(hist) {
+    try {
+      localStorage.setItem(NOTIF_HIST_KEY, JSON.stringify(hist));
+    } catch (e) {}
+  }
+
+  function chaveNotif(contaId, tipo) {
+    return contaId + ':' + tipo + ':' + hojeISO();
+  }
+
+  function jaNotificouHoje(hist, contaId, tipo) {
+    return !!hist[chaveNotif(contaId, tipo)];
+  }
+
+  function marcarNotificado(hist, contaId, tipo) {
+    hist[chaveNotif(contaId, tipo)] = 1;
+  }
+
+  function limparNotifHistAntigo(hist) {
+    const hoje = hojeISO();
+    Object.keys(hist).forEach(function(k) {
+      if (!k.endsWith(':' + hoje)) delete hist[k];
+    });
+  }
+
+  function notifPermitidas() {
+    return typeof Notification !== 'undefined' && Notification.permission === 'granted';
+  }
+
+  function atualizarStatusNotificacoes() {
+    const el = document.getElementById('statusNotif');
+    const btn = document.getElementById('btnAtivarNotif');
+    if (!el || !btn) return;
+    if (typeof Notification === 'undefined') {
+      el.textContent = 'Este navegador não suporta notificações.';
+      btn.style.display = 'none';
+      return;
+    }
+    if (Notification.permission === 'granted') {
+      el.textContent = 'Notificações ativas. Avisamos perto do vencimento e quando atrasar.';
+      btn.style.display = 'none';
+    } else if (Notification.permission === 'denied') {
+      el.textContent = 'Permissão bloqueada. Ative nas configurações do aparelho/navegador.';
+      btn.textContent = 'Permissão bloqueada';
+      btn.disabled = true;
+    } else {
+      el.textContent = 'Toque em Ativar para permitir avisos no aparelho.';
+      btn.style.display = '';
+      btn.disabled = false;
+      btn.textContent = 'Ativar notificações';
+    }
+  }
+
+  function ativarNotificacoes() {
+    if (typeof Notification === 'undefined') {
+      mostrarAlerta('Notificações não são suportadas neste navegador.');
+      return;
+    }
+    if (ehIOS() && !appJaInstalado()) {
+      mostrarAlerta('No iPhone, instale o app na Tela de Início e abra pelo ícone antes de ativar as notificações.');
+      return;
+    }
+    Notification.requestPermission().then(function(perm) {
+      atualizarStatusNotificacoes();
+      if (perm === 'granted') {
+        verificarNotificacoesVencimento(true);
+        mostrarAlerta('Notificações ativadas! Você será avisado quando contas estiverem perto do vencimento ou atrasadas.');
+      } else if (perm === 'denied') {
+        mostrarAlerta('Permissão negada. Você pode liberar depois nas configurações do aparelho.');
+      }
+    }).catch(function() {
+      mostrarAlerta('Não foi possível pedir permissão de notificação.');
+    });
+  }
+
+  function enviarNotificacaoDispositivo(titulo, corpo, tag) {
+    if (!notifPermitidas()) return Promise.resolve();
+    const opts = {
+      body: corpo,
+      icon: 'icons/icon-192.png',
+      badge: 'icons/icon-192.png',
+      tag: tag || ('mc-' + Date.now()),
+      renotify: true,
+      data: { url: './index.html' }
+    };
+    if ('serviceWorker' in navigator) {
+      return navigator.serviceWorker.getRegistration().then(function(reg) {
+        if (reg && reg.showNotification) return reg.showNotification(titulo, opts);
+        return new Notification(titulo, opts);
+      }).catch(function() {
+        try { new Notification(titulo, opts); } catch (e) {}
+      });
+    }
+    try { new Notification(titulo, opts); } catch (e) {}
+    return Promise.resolve();
+  }
+
+  function verificarNotificacoesVencimento(forcarResumo) {
+    if (!notifPermitidas()) return;
+    const lista = contasAlertaVencimento();
+    if (!lista.length) return;
+
+    const hist = lerNotifHist();
+    limparNotifHistAntigo(hist);
+    let enviou = false;
+    const atrasadas = [];
+    const proximas = [];
+
+    lista.forEach(function(c) {
+      const d = diasAteVencimento(c);
+      if (d === null) return;
+      const tipo = d < 0 ? 'atrasada' : 'proxima';
+      if (jaNotificouHoje(hist, c.id, tipo)) return;
+      marcarNotificado(hist, c.id, tipo);
+      enviou = true;
+      if (tipo === 'atrasada') atrasadas.push(c);
+      else proximas.push(c);
+    });
+
+    if (!enviou && !forcarResumo) {
+      salvarNotifHist(hist);
+      return;
+    }
+
+    const promessas = [];
+    atrasadas.forEach(function(c) {
+      const d = Math.abs(diasAteVencimento(c));
+      promessas.push(enviarNotificacaoDispositivo(
+        'Conta atrasada',
+        c.descricao + ' · ' + formatarMoeda(c.valor) + ' · atrasada há ' + d + ' dia(s)',
+        'atrasada-' + c.id
+      ));
+    });
+    proximas.forEach(function(c) {
+      const d = diasAteVencimento(c);
+      let quando = d === 0 ? 'vence hoje' : 'vence em ' + d + ' dia(s)';
+      promessas.push(enviarNotificacaoDispositivo(
+        'Conta perto do vencimento',
+        c.descricao + ' · ' + formatarMoeda(c.valor) + ' · ' + quando,
+        'proxima-' + c.id
+      ));
+    });
+
+    if (forcarResumo && !enviou && lista.length) {
+      const nAtr = lista.filter(function(c) { return diasAteVencimento(c) < 0; }).length;
+      const nProx = lista.length - nAtr;
+      let corpo = [];
+      if (nAtr) corpo.push(nAtr + ' atrasada(s)');
+      if (nProx) corpo.push(nProx + ' perto do vencimento');
+      promessas.push(enviarNotificacaoDispositivo(
+        'Minhas Contas',
+        corpo.join(' · ') || 'Há contas para atenção',
+        'resumo-' + hojeISO()
+      ));
+    }
+
+    salvarNotifHist(hist);
+    return Promise.all(promessas);
   }
 
   function totalEntradasMes(ano, mes) {
@@ -1593,9 +1893,14 @@
     document.getElementById('totalsBar').hidden = (nome === 'ajustes');
     if (nome === 'resumo') { anoResumo = anoAtual; renderResumo(); }
     if (nome === 'entradas') renderEntradas();
-    if (nome === 'ajustes') renderAjustes();
+    if (nome === 'ajustes') {
+      renderAjustes();
+      atualizarStatusNotificacoes();
+      atualizarBotaoInstalar();
+    }
     if (nome === 'contas') renderContas();
     atualizarSinoVencimento();
+    verificarNotificacoesVencimento();
   }
 
   function mudarMes(delta) {
@@ -2342,21 +2647,25 @@
 
   let atualizacaoDisponivel = false;
   let atualizacaoSolicitadaPeloUsuario = false;
+  let modalAtualizacaoJaMostrado = false;
+  let modalAtualizacaoModo = 'atualizar'; // 'atualizar' | 'novidades'
+  let novidadesEmCache = null;
 
-  function marcarAtualizacaoDisponivel() {
+  function marcarAtualizacaoDisponivel(abrirAviso) {
     atualizacaoDisponivel = true;
     const btnNav = document.getElementById('navBtnAtualizacao');
     if (btnNav) {
       btnNav.style.display = '';
       btnNav.classList.add('tem-atualizacao');
     }
-    const btnHeader = document.getElementById('btnSinoAtualizacao');
-    if (btnHeader) {
-      btnHeader.classList.add('visible', 'pulsar');
+    if (abrirAviso !== false && !modalAtualizacaoJaMostrado) {
+      modalAtualizacaoJaMostrado = true;
+      abrirModalAtualizacao();
     }
   }
 
   function aplicarAtualizacaoAgora() {
+    if (!preservarDadosAntesDeAtualizar()) return;
     atualizacaoSolicitadaPeloUsuario = true;
     if (!('serviceWorker' in navigator)) {
       window.location.reload();
@@ -2373,13 +2682,91 @@
     });
   }
 
-  function clicarSinoAtualizacao() {
-    mostrarConfirmacao('Há uma nova versão do Minhas Contas. Deseja instalar a atualização agora?', function() {
-      aplicarAtualizacaoAgora();
+  function carregarNovidades(forcar) {
+    if (!forcar && novidadesEmCache) return Promise.resolve(novidadesEmCache);
+    return fetch('novidades.json?t=' + Date.now(), { cache: 'no-store' })
+      .then(function(r) {
+        if (!r.ok) throw new Error('fail');
+        return r.json();
+      })
+      .then(function(data) {
+        if (!data || !Array.isArray(data.itens)) throw new Error('invalid');
+        novidadesEmCache = data;
+        return data;
+      })
+      .catch(function() {
+        return novidadesEmCache || NOVIDADES_LOCAL;
+      });
+  }
+
+  function preencherListaNovidades(data) {
+    const ul = document.getElementById('listaNovidades');
+    const titulo = document.getElementById('atualizacaoTitulo');
+    const versaoEl = document.getElementById('atualizacaoVersao');
+    const btnOk = document.getElementById('btnConfirmarAtualizacao');
+    const btnCancel = document.querySelector('#modalAtualizacao .btn-secondary');
+    const avisoDados = document.getElementById('atualizacaoAvisoDados');
+
+    titulo.textContent = data.titulo || (modalAtualizacaoModo === 'novidades' ? 'O que há de novo' : 'Nova atualização');
+    versaoEl.textContent = data.versao ? ('Versão ' + data.versao) : '';
+    ul.innerHTML = (data.itens || []).map(function(item) {
+      return '<li>' + esc(item) + '</li>';
+    }).join('') || '<li>Correções e melhorias.</li>';
+
+    if (modalAtualizacaoModo === 'novidades') {
+      btnOk.textContent = 'Entendi';
+      if (btnCancel) btnCancel.style.display = 'none';
+      if (avisoDados) avisoDados.style.display = 'none';
+    } else {
+      btnOk.textContent = 'Atualizar agora';
+      if (btnCancel) btnCancel.style.display = '';
+      if (avisoDados) avisoDados.style.display = '';
+    }
+  }
+
+  function abrirModalAtualizacao() {
+    modalAtualizacaoModo = 'atualizar';
+    carregarNovidades(true).then(function(data) {
+      preencherListaNovidades(data);
+      document.getElementById('modalAtualizacao').classList.add('open');
     });
   }
 
+  function mostrarNovidadesAposAtualizar() {
+    let vista = null;
+    try { vista = localStorage.getItem(VERSAO_VISTA_KEY); } catch (e) {}
+    if (vista === APP_VERSION) return;
+    try { localStorage.setItem(VERSAO_VISTA_KEY, APP_VERSION); } catch (e) {}
+    if (!vista) return; // primeira instalação: não interrompe
+
+    modalAtualizacaoModo = 'novidades';
+    carregarNovidades().then(function(data) {
+      // Prefere as notas da versão atual do app
+      const notas = (data.versao === APP_VERSION) ? data : NOVIDADES_LOCAL;
+      preencherListaNovidades(notas);
+      document.getElementById('modalAtualizacao').classList.add('open');
+    });
+  }
+
+  function fecharModalAtualizacao() {
+    document.getElementById('modalAtualizacao').classList.remove('open');
+  }
+
+  function confirmarAtualizacaoDoModal() {
+    if (modalAtualizacaoModo === 'novidades') {
+      fecharModalAtualizacao();
+      return;
+    }
+    fecharModalAtualizacao();
+    aplicarAtualizacaoAgora();
+  }
+
+  function clicarSinoAtualizacao() {
+    abrirModalAtualizacao();
+  }
+
   function atualizarSistema() {
+    if (!preservarDadosAntesDeAtualizar()) return;
     if (!('serviceWorker' in navigator)) {
       atualizacaoSolicitadaPeloUsuario = true;
       window.location.reload();
@@ -2393,8 +2780,8 @@
       }
       reg.update().finally(function() {
         if (reg.waiting) {
-          marcarAtualizacaoDisponivel();
-          aplicarAtualizacaoAgora();
+          marcarAtualizacaoDisponivel(false);
+          abrirModalAtualizacao();
         } else {
           atualizacaoSolicitadaPeloUsuario = true;
           window.location.reload();
@@ -2406,9 +2793,9 @@
   function observarAtualizacaoSW(reg) {
     if (!reg) return;
 
-    // Só avisa com o sininho — não atualiza sozinho
+    // Só avisa com o sininho + novidades — não atualiza sozinho
     if (reg.waiting && navigator.serviceWorker.controller) {
-      marcarAtualizacaoDisponivel();
+      marcarAtualizacaoDisponivel(true);
     }
 
     reg.addEventListener('updatefound', function() {
@@ -2416,7 +2803,7 @@
       if (!novoWorker) return;
       novoWorker.addEventListener('statechange', function() {
         if (novoWorker.state === 'installed' && navigator.serviceWorker.controller) {
-          marcarAtualizacaoDisponivel();
+          marcarAtualizacaoDisponivel(true);
         }
       });
     });
@@ -2447,24 +2834,38 @@
   function atualizarBotaoInstalar() {
     const btn = document.getElementById('btnInstalar');
     if (!btn) return;
-    if (appJaInstalado()) btn.style.display = 'none';
-    else if (deferredPrompt || ehIOS()) btn.style.display = 'block';
-    else btn.style.display = 'none';
+    if (appJaInstalado()) {
+      btn.style.display = 'none';
+    } else {
+      btn.style.display = 'block';
+      btn.textContent = ehIOS() ? 'Instalar no iPhone' : 'Instalar app';
+    }
   }
 
   function instalarApp() {
     if (deferredPrompt) {
       deferredPrompt.prompt();
-      deferredPrompt.userChoice.finally(() => {
+      deferredPrompt.userChoice.finally(function() {
         deferredPrompt = null;
         atualizarBotaoInstalar();
       });
     } else if (ehIOS()) {
-      mostrarAlerta('No iPhone: toque em Compartilhar e depois em "Adicionar à Tela de Início".');
+      document.getElementById('modalInstalarIOS').classList.add('open');
     } else {
       mostrarAlerta('Use o menu do navegador e escolha "Instalar app" ou "Adicionar à tela de início".');
     }
   }
+
+  function fecharModalInstalarIOS() {
+    document.getElementById('modalInstalarIOS').classList.remove('open');
+  }
+
+  try {
+    window.addEventListener('pagehide', function() { salvar(); });
+    document.addEventListener('visibilitychange', function() {
+      if (document.hidden) salvar();
+    });
+  } catch (e) {}
 
   try {
     window.addEventListener('beforeinstallprompt', function(e) {
@@ -2505,11 +2906,12 @@
 
     document.addEventListener('visibilitychange', function() {
       if (document.hidden) return;
+      verificarNotificacoesVencimento();
       navigator.serviceWorker.getRegistration().then(function(reg) {
         if (!reg) return;
         reg.update().then(function() {
           if (reg.waiting && navigator.serviceWorker.controller) {
-            marcarAtualizacaoDisponivel();
+            marcarAtualizacaoDisponivel(true);
           }
         }).catch(function() {});
       });
@@ -2525,8 +2927,12 @@
     mostrarView('resumo');
     atualizarTotais();
     atualizarSinoVencimento();
+    atualizarStatusNotificacoes();
+    verificarNotificacoesVencimento();
     exibirVersaoApp();
     atualizarBotaoInstalar();
+    mostrarNovidadesAposAtualizar();
+    setInterval(function() { verificarNotificacoesVencimento(); }, 60 * 60 * 1000);
   } catch (err) {
     console.error('Erro ao iniciar Minhas Contas:', err);
   }
