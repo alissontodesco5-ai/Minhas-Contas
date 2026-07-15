@@ -13,16 +13,30 @@ Também funciona abrindo o `index.html` localmente no navegador (o service worke
 
 ## Recursos
 
-- **Contas:** vencimento, descrição, obs, categoria, natureza, parcelas, valor, dívida, prioridade e checkbox **Pago** por mês
-- **Entradas:** classes de receita com Cenário atual, Cenário 2 e diferença
-- **Resumo:** diagnóstico do mês + tabela anual
-- **Ajustes:** tema claro/escuro, cor, fonte, categorias, exportar/importar JSON, instalar app
+- **Contas:** vencimento, descrição, obs, categoria, parcelas, valor e checkbox **Pago** por mês
+- **Entradas:** classes de receita com valor do mês e data de recebimento
+- **Resumo:** KPIs, gráficos e diagnóstico do mês + tabela anual
+- **Ajustes:** tema, fonte, categorias, backup JSON, instalar app, notificações
 
 Os dados ficam no **localStorage** do navegador. Use **Exportar JSON** para backup ou para levar os dados a outro aparelho.
 
 ## Estrutura
 
-- `index.html` — interface e lógica
-- `manifest.json` — PWA instalável
-- `service-worker.js` — cache offline
-- `icons/` — ícones do app
+```text
+index.html          # markup das telas e modais
+css/app.css         # visual (temas, componentes, layout)
+js/
+  constants.js      # versão, chaves e constantes
+  format.js         # moeda, datas e totais
+  storage.js        # carregar/salvar/backup
+  ui.js             # tema, selects custom, alertas
+  state-contas.js   # contas e pagamentos
+  state-entradas.js # entradas
+  resumo.js         # gráficos e resumo
+  pwa.js            # instalação, atualização, notificações
+  app.js            # navegação e init
+manifest.json
+service-worker.js
+novidades.json
+icons/
+```

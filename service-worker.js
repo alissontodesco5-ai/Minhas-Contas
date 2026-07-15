@@ -1,8 +1,18 @@
-const CACHE_NAME = 'minhas-contas-v20';
+const CACHE_NAME = 'minhas-contas-v21';
 const ASSETS = [
   './index.html',
   './manifest.json',
   './novidades.json',
+  './css/app.css',
+  './js/constants.js',
+  './js/format.js',
+  './js/storage.js',
+  './js/ui.js',
+  './js/state-contas.js',
+  './js/state-entradas.js',
+  './js/resumo.js',
+  './js/pwa.js',
+  './js/app.js',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon-512-maskable.png',
@@ -34,7 +44,6 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = event.request.url;
 
-  // Sempre busca novidades na rede (versão antiga precisa ler o changelog novo)
   if (url.includes('novidades.json')) {
     event.respondWith(
       fetch(event.request, { cache: 'no-store' }).then((response) => {

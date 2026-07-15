@@ -1,9 +1,10 @@
 {
-  "versao": "v18",
-  "titulo": "Novidades da v18",
+  "versao": "v21",
+  "titulo": "Novidades da v21",
   "itens": [
-    "Ícone do app nas notificações do celular (sem quadrado branco)",
-    "Data de recebimento nas entradas",
-    "Chips das contas em linha, expandem ao tocar no card"
+    "Código organizado em pastas css/ e js/ (mais fácil de manter)",
+    "Visual modernizado: tipografia Sora/Manrope, cards e navegação",
+    "Transições mais suaves na troca de telas e botões",
+    "Seus registros continuam salvos neste aparelho"
   ]
 }
